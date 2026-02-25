@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+solana-test-validator --reset

@@ -1,0 +1,30 @@
+pub const MAX_PROTOCOL_FEE_BPS: u16 = 10_000;
+pub const MAX_MAX_TICKETS_PER_WALLET: u16 = 100;
+pub const MAX_ORGANIZER_METADATA_URI_LEN: usize = 200;
+pub const MAX_EVENT_TITLE_LEN: usize = 64;
+pub const MAX_EVENT_VENUE_LEN: usize = 64;
+pub const MAX_TICKET_CLASS_NAME_LEN: usize = 32;
+pub const MAX_TICKET_METADATA_URI_LEN: usize = 200;
+pub const MAX_GATE_IDENTIFIER_LEN: usize = 32;
+pub const MAX_RESALE_RECIPIENT_LIST_LEN: usize = 16;
+pub const MAX_PERK_CODE_LEN: usize = 32;
+pub const MAX_LOYALTY_MULTIPLIER_BPS: u16 = 50_000;
+pub const MAX_TRUST_FLAG_BITS: u32 = 0xFFFF;
+
+pub const OPERATOR_PERMISSION_CHECKIN: u32 = 1 << 0;
+pub const OPERATOR_PERMISSION_DISPUTES: u32 = 1 << 1;
+
+pub const SEED_PROTOCOL_CONFIG: &[u8] = b"protocol-config";
+pub const SEED_ORGANIZER: &[u8] = b"organizer";
+pub const SEED_ORGANIZER_OPERATOR: &[u8] = b"organizer-operator";
+pub const SEED_EVENT: &[u8] = b"event";
+pub const SEED_TICKET_CLASS: &[u8] = b"ticket-class";
+pub const SEED_TICKET: &[u8] = b"ticket";
+pub const SEED_WALLET_PURCHASE_COUNTER: &[u8] = b"wallet-purchase-counter";
+pub const SEED_RESALE_POLICY: &[u8] = b"resale-policy";
+pub const SEED_LISTING: &[u8] = b"listing";
+pub const SEED_FINANCING_OFFER: &[u8] = b"financing-offer";
+pub const SEED_DISBURSEMENT_RECORD: &[u8] = b"disbursement-record";
+pub const SEED_SETTLEMENT_LEDGER: &[u8] = b"settlement-ledger";
+pub const SEED_LOYALTY_LEDGER: &[u8] = b"loyalty-ledger";
+pub const SEED_TRUST_SIGNAL: &[u8] = b"trust-signal";
