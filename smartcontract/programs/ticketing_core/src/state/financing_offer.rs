@@ -41,6 +41,10 @@ pub struct FinancingOfferInput {
 #[derive(InitSpace)]
 pub struct FinancingOffer {
     pub bump: u8,
+    pub schema_version: u16,
+    pub deprecated_layout_version: u16,
+    pub replacement_account: Pubkey,
+    pub deprecated_at: i64,
     pub event: Pubkey,
     pub organizer: Pubkey,
     pub offer_authority: Pubkey,
@@ -63,6 +67,21 @@ pub struct FinancingOffer {
     pub total_disbursed_lamports: u64,
     pub disbursement_count: u16,
     pub disbursed_at: i64,
+    pub compliance_decision_code: u16,
+    pub compliance_checked_at: i64,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+impl FinancingOffer {
+    pub fn mark_layout_deprecated(
+        &mut self,
+        deprecated_layout_version: u16,
+        replacement_account: Pubkey,
+        now: i64,
+    ) {
+        self.deprecated_layout_version = deprecated_layout_version;
+        self.replacement_account = replacement_account;
+        self.deprecated_at = now;
+    }
 }

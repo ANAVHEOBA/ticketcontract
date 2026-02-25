@@ -2,15 +2,17 @@ use anchor_lang::{prelude::*, Discriminator};
 
 use crate::{
     constants::{
-        MAX_GATE_IDENTIFIER_LEN, OPERATOR_PERMISSION_CHECKIN, SEED_EVENT, SEED_ORGANIZER,
-        SEED_ORGANIZER_OPERATOR, SEED_PROTOCOL_CONFIG, SEED_TICKET, SEED_TICKET_CLASS,
+        MAX_GATE_IDENTIFIER_LEN, OPERATOR_PERMISSION_CHECKIN, ROLE_SCANNER, ROLE_SCOPE_ORGANIZER,
+        SEED_EVENT, SEED_ORGANIZER, SEED_ORGANIZER_OPERATOR, SEED_PROTOCOL_CONFIG,
+        SEED_ROLE_BINDING, SEED_TICKET, SEED_TICKET_CLASS,
     },
     error::TicketingError,
     events::{CheckInPolicyUpdated, TicketAttendanceRecorded},
     state::{
-        EventAccount, EventStatus, OrganizerOperator, OrganizerProfile, ProtocolConfig, Ticket,
-        TicketClass, TicketStatus,
+        EventAccount, EventStatus, OrganizerOperator, OrganizerProfile, ProtocolConfig,
+        RoleBinding, Ticket, TicketClass, TicketStatus,
     },
+    validation::access::role_is_active,
 };
 
 pub fn set_checkin_policy(
@@ -69,16 +71,18 @@ pub fn check_in_ticket(
         !gate_identifier.is_empty() && gate_identifier.len() <= MAX_GATE_IDENTIFIER_LEN,
         TicketingError::InvalidGateIdentifier
     );
+    let now = Clock::get()?.unix_timestamp;
     require!(
         is_authorized_scanner(
             &ctx.accounts.scanner.to_account_info(),
             &ctx.accounts.organizer_profile,
             &ctx.accounts.organizer_operator,
+            &ctx.accounts.role_binding,
+            now,
         )?,
         TicketingError::Unauthorized
     );
 
-    let now = Clock::get()?.unix_timestamp;
     let ticket_class = &ctx.accounts.ticket_class;
     let ticket = &mut ctx.accounts.ticket;
     require!(
@@ -133,6 +137,8 @@ fn is_authorized_scanner(
     scanner: &AccountInfo<'_>,
     organizer_profile: &Account<'_, OrganizerProfile>,
     organizer_operator: &AccountInfo<'_>,
+    role_binding: &AccountInfo<'_>,
+    now: i64,
 ) -> Result<bool> {
     if scanner.key() == organizer_profile.authority {
         return Ok(true);
@@ -146,21 +152,45 @@ fn is_authorized_scanner(
         ],
         &crate::ID,
     );
-    require_keys_eq!(
-        organizer_operator.key(),
-        expected_operator,
-        TicketingError::Unauthorized
-    );
+    if organizer_operator.key() == expected_operator {
+        let data = organizer_operator.try_borrow_data()?;
+        let mut data_slice: &[u8] = &data;
+        if data_slice.len() >= 8 && &data_slice[..8] == OrganizerOperator::DISCRIMINATOR {
+            let operator = OrganizerOperator::try_deserialize(&mut data_slice)?;
+            let has_permission = (operator.permissions & OPERATOR_PERMISSION_CHECKIN) != 0;
+            if operator.active && operator.operator == scanner.key() && has_permission {
+                return Ok(true);
+            }
+        }
+    }
 
-    let data = organizer_operator.try_borrow_data()?;
-    let mut data_slice: &[u8] = &data;
-    if data_slice.len() < 8 || &data_slice[..8] != OrganizerOperator::DISCRIMINATOR {
+    let (expected_scanner_role, _) = Pubkey::find_program_address(
+        &[
+            SEED_ROLE_BINDING,
+            organizer_profile.key().as_ref(),
+            &[ROLE_SCANNER],
+            scanner.key().as_ref(),
+        ],
+        &crate::ID,
+    );
+    if role_binding.key() != expected_scanner_role {
         return Ok(false);
     }
-    let operator = OrganizerOperator::try_deserialize(&mut data_slice)?;
-    let has_permission = (operator.permissions & OPERATOR_PERMISSION_CHECKIN) != 0;
 
-    Ok(operator.active && operator.operator == scanner.key() && has_permission)
+    let data = role_binding.try_borrow_data()?;
+    let mut data_slice: &[u8] = &data;
+    if data_slice.len() < 8 || &data_slice[..8] != RoleBinding::DISCRIMINATOR {
+        return Ok(false);
+    }
+    let binding = RoleBinding::try_deserialize(&mut data_slice)?;
+    Ok(role_is_active(
+        &binding,
+        ROLE_SCANNER,
+        ROLE_SCOPE_ORGANIZER,
+        organizer_profile.key(),
+        scanner.key(),
+        now,
+    ))
 }
 
 #[derive(Accounts)]
@@ -232,4 +262,6 @@ pub struct CheckInTicket<'info> {
     pub ticket: Account<'info, Ticket>,
     /// CHECK: runtime-validated PDA and deserialized only when scanner != organizer authority.
     pub organizer_operator: UncheckedAccount<'info>,
+    /// CHECK: runtime-validated role-binding PDA for scanner authorization fallback.
+    pub role_binding: UncheckedAccount<'info>,
 }

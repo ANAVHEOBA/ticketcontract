@@ -17,6 +17,7 @@ pub fn settle_resale_revenue(
     protocol_bps: u16,
     royalty_bps: u16,
     other_bps: u16,
+    settlement_reference: [u8; 16],
 ) -> Result<()> {
     settle_revenue_waterfall(
         ctx.accounts.into(),
@@ -24,6 +25,7 @@ pub fn settle_resale_revenue(
         protocol_bps,
         royalty_bps,
         other_bps,
+        settlement_reference,
         false,
     )
 }

@@ -2,10 +2,13 @@ use anchor_lang::prelude::*;
 
 use crate::{
     constants::{
-        MAX_EVENT_TITLE_LEN, MAX_EVENT_VENUE_LEN, SEED_EVENT, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG,
+        EVENT_ACCOUNT_SCHEMA_VERSION, MAX_EVENT_TITLE_LEN, MAX_EVENT_VENUE_LEN, SEED_EVENT,
+        SEED_ORGANIZER, SEED_PROTOCOL_CONFIG,
     },
     error::TicketingError,
+    events::EventStateTransitioned,
     state::{EventAccount, EventStatus, OrganizerProfile, OrganizerStatus, ProtocolConfig},
+    utils::correlation::derive_correlation_id,
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -34,6 +37,10 @@ pub fn create_event(ctx: Context<CreateEvent>, event_id: u64, input: EventInput)
     let now = Clock::get()?.unix_timestamp;
     let event = &mut ctx.accounts.event_account;
     event.bump = ctx.bumps.event_account;
+    event.schema_version = EVENT_ACCOUNT_SCHEMA_VERSION;
+    event.deprecated_layout_version = 0;
+    event.replacement_account = Pubkey::default();
+    event.deprecated_at = 0;
     event.organizer = ctx.accounts.organizer_profile.key();
     event.event_id = event_id;
     event.title = input.title;
@@ -44,9 +51,27 @@ pub fn create_event(ctx: Context<CreateEvent>, event_id: u64, input: EventInput)
     event.lock_ts = input.lock_ts;
     event.capacity = input.capacity;
     event.loyalty_multiplier_bps = 10_000;
+    event.compliance_restriction_flags = 0;
+    event.is_paused = false;
     event.status = EventStatus::Draft;
     event.created_at = now;
     event.updated_at = now;
+    let correlation_id = derive_correlation_id(
+        &event.key(),
+        &ctx.accounts.authority.key(),
+        now,
+        event.status as u16,
+    );
+    emit!(EventStateTransitioned {
+        event: event.key(),
+        organizer: event.organizer,
+        authority: ctx.accounts.authority.key(),
+        old_status: 0,
+        new_status: event.status as u8,
+        is_paused: event.is_paused,
+        correlation_id,
+        at: now,
+    });
 
     Ok(())
 }

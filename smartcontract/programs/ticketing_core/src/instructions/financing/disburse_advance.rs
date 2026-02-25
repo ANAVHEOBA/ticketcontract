@@ -12,6 +12,7 @@ use crate::{
         DisbursementRecord, EventAccount, FinancingLifecycleStatus, FinancingOffer,
         OrganizerProfile, ProtocolConfig,
     },
+    validation::invariants::assert_event_not_paused,
 };
 
 pub fn disburse_advance(
@@ -23,6 +24,7 @@ pub fn disburse_advance(
         !ctx.accounts.protocol_config.is_paused,
         TicketingError::ProtocolPaused
     );
+    assert_event_not_paused(&ctx.accounts.event_account)?;
 
     let disburser = ctx.accounts.disburser.key();
     let offer = &mut ctx.accounts.financing_offer;

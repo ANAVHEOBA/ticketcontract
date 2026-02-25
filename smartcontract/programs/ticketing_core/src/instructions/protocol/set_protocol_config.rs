@@ -4,6 +4,7 @@ use crate::{
     constants::{MAX_MAX_TICKETS_PER_WALLET, MAX_PROTOCOL_FEE_BPS, SEED_PROTOCOL_CONFIG},
     error::TicketingError,
     events::{ProtocolAuthoritiesUpdated, ProtocolConfigUpdated, ProtocolVaultsUpdated},
+    instructions::protocol::hooks::enforce_privileged_signoff,
     state::ProtocolConfig,
 };
 
@@ -19,6 +20,16 @@ pub fn set_protocol_config(
     require!(
         max_tickets_per_wallet > 0 && max_tickets_per_wallet <= MAX_MAX_TICKETS_PER_WALLET,
         TicketingError::InvalidMaxTicketsPerWallet
+    );
+
+    enforce_privileged_signoff(
+        &ctx.accounts.protocol_config,
+        ctx.accounts.admin.key(),
+        ctx.remaining_accounts,
+    )?;
+    require!(
+        ctx.accounts.protocol_config.timelock_delay_secs == 0,
+        TicketingError::TimelockRequired
     );
 
     let protocol_config = &mut ctx.accounts.protocol_config;
@@ -50,6 +61,16 @@ pub fn set_protocol_authorities(
         TicketingError::InvalidAuthority
     );
 
+    enforce_privileged_signoff(
+        &ctx.accounts.protocol_config,
+        ctx.accounts.admin.key(),
+        ctx.remaining_accounts,
+    )?;
+    require!(
+        ctx.accounts.protocol_config.timelock_delay_secs == 0,
+        TicketingError::TimelockRequired
+    );
+
     let protocol_config = &mut ctx.accounts.protocol_config;
     let old_admin = protocol_config.admin;
     protocol_config.admin = new_admin;
@@ -70,6 +91,16 @@ pub fn register_protocol_vaults(
     treasury_vault: Pubkey,
     fee_vault: Pubkey,
 ) -> Result<()> {
+    enforce_privileged_signoff(
+        &ctx.accounts.protocol_config,
+        ctx.accounts.admin.key(),
+        ctx.remaining_accounts,
+    )?;
+    require!(
+        ctx.accounts.protocol_config.timelock_delay_secs == 0,
+        TicketingError::TimelockRequired
+    );
+
     let protocol_config = &mut ctx.accounts.protocol_config;
     protocol_config.treasury_vault = treasury_vault;
     protocol_config.fee_vault = fee_vault;

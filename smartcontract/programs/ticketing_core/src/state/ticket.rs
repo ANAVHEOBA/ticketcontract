@@ -39,6 +39,10 @@ impl TicketStatus {
 #[derive(InitSpace)]
 pub struct Ticket {
     pub bump: u8,
+    pub schema_version: u16,
+    pub deprecated_layout_version: u16,
+    pub replacement_account: Pubkey,
+    pub deprecated_at: i64,
     pub event: Pubkey,
     pub ticket_class: Pubkey,
     pub owner: Pubkey,
@@ -69,8 +73,23 @@ pub struct Ticket {
     pub metadata_updated_at: i64,
     pub transfer_count: u16,
     pub last_transfer_at: i64,
+    pub compliance_decision_code: u16,
+    pub compliance_checked_at: i64,
     pub purchase_trust_recorded: bool,
     pub attendance_trust_recorded: bool,
+}
+
+impl Ticket {
+    pub fn mark_layout_deprecated(
+        &mut self,
+        deprecated_layout_version: u16,
+        replacement_account: Pubkey,
+        now: i64,
+    ) {
+        self.deprecated_layout_version = deprecated_layout_version;
+        self.replacement_account = replacement_account;
+        self.deprecated_at = now;
+    }
 }
 
 #[account]

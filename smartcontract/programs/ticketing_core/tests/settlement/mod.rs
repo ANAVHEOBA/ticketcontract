@@ -277,6 +277,7 @@ async fn waterfall_routes_primary_and_marks_financing_settled() {
             protocol_bps,
             royalty_bps,
             other_bps,
+            reference(11),
         ),
         &[&fixture.organizer_authority],
     )
@@ -332,6 +333,7 @@ async fn resale_routing_updates_secondary_counters_after_settlement() {
             500,
             500,
             500,
+            reference(12),
         ),
         &[&fixture.organizer_authority],
     )
@@ -363,6 +365,7 @@ async fn resale_routing_updates_secondary_counters_after_settlement() {
             300,
             400,
             200,
+            reference(13),
         ),
         &[&fixture.organizer_authority],
     )
@@ -405,6 +408,7 @@ async fn finalize_settlement_requires_obligation_completion() {
             0,
             0,
             0,
+            reference(14),
         ),
         &[&fixture.organizer_authority],
     )
@@ -448,6 +452,7 @@ async fn finalize_settlement_requires_obligation_completion() {
             0,
             0,
             0,
+            reference(15),
         ),
         &[&fixture.organizer_authority],
     )
@@ -479,6 +484,7 @@ async fn finalize_settlement_requires_obligation_completion() {
                 0,
                 0,
                 0,
+                reference(16),
             ),
             &[&fixture.organizer_authority],
         )

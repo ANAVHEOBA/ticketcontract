@@ -12,10 +12,10 @@ use ticketing_core::{
     instructions::event::EventInput,
     instructions::ticket_class::TicketClassInput,
     state::{
-        DisbursementRecord, EventAccount, FinancingOffer, FinancingOfferInput, Listing,
-        LoyaltyLedger, OrganizerOperator, OrganizerProfile, ProtocolConfig, ResalePolicy,
-        ResalePolicyInput, SettlementLedger, Ticket, TicketClass, TrustSignal,
-        WalletPurchaseCounter,
+        ComplianceRegistry, DisbursementRecord, EventAccount, FinancingOffer, FinancingOfferInput,
+        Listing, LoyaltyLedger, OrganizerOperator, OrganizerProfile, ProtocolConfig, ResalePolicy,
+        ResalePolicyInput, RoleBinding, SettlementLedger, Ticket, TicketClass, TrustSignal,
+        VaultAccount, WalletPurchaseCounter,
     },
     ID,
 };
@@ -31,6 +31,13 @@ pub fn organizer_pda(authority: Pubkey) -> (Pubkey, u8) {
 pub fn organizer_operator_pda(organizer: Pubkey, operator: Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
         &[b"organizer-operator", organizer.as_ref(), operator.as_ref()],
+        &ID,
+    )
+}
+
+pub fn role_binding_pda(target: Pubkey, role: u8, subject: Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"role-binding", target.as_ref(), &[role], subject.as_ref()],
         &ID,
     )
 }
@@ -115,6 +122,18 @@ pub fn trust_signal_pda(wallet: Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"trust-signal", wallet.as_ref()], &ID)
 }
 
+pub fn compliance_registry_pda(target: Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&[b"compliance-registry", target.as_ref()], &ID)
+}
+
+pub fn vault_state_pda(kind: u8, parent: Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&[b"vault", b"state", &[kind], parent.as_ref()], &ID)
+}
+
+pub fn vault_funds_pda(kind: u8, parent: Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(&[b"vault", b"funds", &[kind], parent.as_ref()], &ID)
+}
+
 pub async fn setup() -> ProgramTestContext {
     let deploy_dir =
         std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/deploy");
@@ -196,6 +215,49 @@ pub async fn fetch_organizer_operator(
 
     let mut data = account.data.as_slice();
     OrganizerOperator::try_deserialize(&mut data).unwrap()
+}
+
+pub async fn fetch_role_binding(
+    banks_client: &mut BanksClient,
+    role_binding: Pubkey,
+) -> RoleBinding {
+    let account = banks_client
+        .get_account(role_binding)
+        .await
+        .unwrap()
+        .expect("role binding account missing");
+
+    let mut data = account.data.as_slice();
+    RoleBinding::try_deserialize(&mut data).unwrap()
+}
+
+pub async fn fetch_vault_account(
+    banks_client: &mut BanksClient,
+    vault_state: Pubkey,
+) -> VaultAccount {
+    let account = banks_client
+        .get_account(vault_state)
+        .await
+        .unwrap()
+        .expect("vault state account missing");
+
+    let mut data = account.data.as_slice();
+    VaultAccount::try_deserialize(&mut data).unwrap()
+}
+
+#[allow(dead_code)]
+pub async fn fetch_compliance_registry(
+    banks_client: &mut BanksClient,
+    compliance_registry: Pubkey,
+) -> ComplianceRegistry {
+    let account = banks_client
+        .get_account(compliance_registry)
+        .await
+        .unwrap()
+        .expect("compliance registry account missing");
+
+    let mut data = account.data.as_slice();
+    ComplianceRegistry::try_deserialize(&mut data).unwrap()
 }
 
 pub async fn fetch_event_account(
@@ -460,6 +522,139 @@ pub fn ix_pause_protocol(admin: Pubkey, protocol_config: Pubkey, is_paused: bool
     }
 }
 
+pub fn ix_set_multisig_config(
+    admin: Pubkey,
+    protocol_config: Pubkey,
+    enabled: bool,
+    threshold: u8,
+    signer_1: Pubkey,
+    signer_2: Pubkey,
+    signer_3: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::SetProtocolGovernance {
+            admin,
+            protocol_config,
+        }
+        .to_account_metas(None),
+        data: instruction::SetMultisigConfig {
+            enabled,
+            threshold,
+            signer_1,
+            signer_2,
+            signer_3,
+        }
+        .data(),
+    }
+}
+
+pub fn ix_set_timelock_delay(
+    admin: Pubkey,
+    protocol_config: Pubkey,
+    timelock_delay_secs: i64,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::SetProtocolGovernance {
+            admin,
+            protocol_config,
+        }
+        .to_account_metas(None),
+        data: instruction::SetTimelockDelay { timelock_delay_secs }.data(),
+    }
+}
+
+pub fn ix_queue_protocol_config_change(
+    admin: Pubkey,
+    protocol_config: Pubkey,
+    pending_protocol_fee_bps: u16,
+    pending_max_tickets_per_wallet: u16,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::SetProtocolGovernance {
+            admin,
+            protocol_config,
+        }
+        .to_account_metas(None),
+        data: instruction::QueueProtocolConfigChange {
+            pending_protocol_fee_bps,
+            pending_max_tickets_per_wallet,
+        }
+        .data(),
+    }
+}
+
+pub fn ix_execute_protocol_config_change(admin: Pubkey, protocol_config: Pubkey) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::SetProtocolGovernance {
+            admin,
+            protocol_config,
+        }
+        .to_account_metas(None),
+        data: instruction::ExecuteProtocolConfigChange {}.data(),
+    }
+}
+
+pub fn ix_begin_upgrade_authority_handoff(
+    admin: Pubkey,
+    protocol_config: Pubkey,
+    pending_upgrade_authority: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::SetProtocolGovernance {
+            admin,
+            protocol_config,
+        }
+        .to_account_metas(None),
+        data: instruction::BeginUpgradeAuthorityHandoff {
+            pending_upgrade_authority,
+        }
+        .data(),
+    }
+}
+
+pub fn ix_accept_upgrade_authority_handoff(
+    pending_upgrade_authority: Pubkey,
+    protocol_config: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::AcceptUpgradeAuthorityHandoff {
+            pending_upgrade_authority,
+            protocol_config,
+        }
+        .to_account_metas(None),
+        data: instruction::AcceptUpgradeAuthorityHandoff {}.data(),
+    }
+}
+
+pub fn ix_emergency_rotate_admin(
+    emergency_admin: Pubkey,
+    protocol_config: Pubkey,
+    new_admin: Pubkey,
+    new_emergency_admin: Pubkey,
+    reason_code: u16,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::EmergencyAdminAction {
+            emergency_admin,
+            protocol_config,
+        }
+        .to_account_metas(None),
+        data: instruction::EmergencyRotateAdmin {
+            new_admin,
+            new_emergency_admin,
+            reason_code,
+        }
+        .data(),
+    }
+}
+
 pub fn ix_create_organizer(
     payer: Pubkey,
     authority: Pubkey,
@@ -622,12 +817,81 @@ pub fn ix_check_in_ticket(
             ticket_class,
             ticket,
             organizer_operator,
+            role_binding: organizer_operator,
         }
         .to_account_metas(None),
         data: instruction::CheckInTicket {
             class_id,
             ticket_id,
             gate_identifier,
+        }
+        .data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn ix_grant_role(
+    granter: Pubkey,
+    payer: Pubkey,
+    subject: Pubkey,
+    target: Pubkey,
+    protocol_config: Pubkey,
+    organizer_profile: Pubkey,
+    role_binding: Pubkey,
+    role: u8,
+    scope: u8,
+    starts_at: i64,
+    expires_at: i64,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::GrantRole {
+            granter,
+            payer,
+            subject,
+            target,
+            protocol_config,
+            organizer_profile,
+            role_binding,
+            system_program: solana_sdk::system_program::id(),
+        }
+        .to_account_metas(None),
+        data: instruction::GrantRole {
+            role,
+            scope,
+            starts_at,
+            expires_at,
+        }
+        .data(),
+    }
+}
+
+pub fn ix_revoke_role(
+    revoker: Pubkey,
+    subject: Pubkey,
+    target: Pubkey,
+    protocol_config: Pubkey,
+    organizer_profile: Pubkey,
+    role_binding: Pubkey,
+    role: u8,
+    scope: u8,
+    reason_code: u16,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::RevokeRole {
+            revoker,
+            subject,
+            target,
+            protocol_config,
+            organizer_profile,
+            role_binding,
+        }
+        .to_account_metas(None),
+        data: instruction::RevokeRole {
+            role,
+            scope,
+            reason_code,
         }
         .data(),
     }
@@ -689,6 +953,24 @@ pub fn ix_freeze_event(
         }
         .to_account_metas(None),
         data: instruction::FreezeEvent {}.data(),
+    }
+}
+
+pub fn ix_pause_event(
+    authority: Pubkey,
+    organizer_profile: Pubkey,
+    event_account: Pubkey,
+    is_paused: bool,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::PauseEvent {
+            authority,
+            organizer_profile,
+            event_account,
+        }
+        .to_account_metas(None),
+        data: instruction::PauseEvent { is_paused }.data(),
     }
 }
 
@@ -809,6 +1091,7 @@ pub fn ix_buy_ticket(
     ticket_id: u32,
     expected_price_lamports: u64,
 ) -> Instruction {
+    let (compliance_registry, _) = compliance_registry_pda(event_account);
     Instruction {
         program_id: ID,
         accounts: accounts::BuyTicket {
@@ -822,6 +1105,7 @@ pub fn ix_buy_ticket(
             protocol_fee_vault,
             organizer_payout_wallet,
             stakeholder_wallet,
+            compliance_registry,
             system_program: solana_sdk::system_program::id(),
         }
         .to_account_metas(None),
@@ -1013,6 +1297,7 @@ pub fn ix_buy_resale_ticket(
     ticket_id: u32,
     max_price_lamports: u64,
 ) -> Instruction {
+    let (compliance_registry, _) = compliance_registry_pda(event_account);
     Instruction {
         program_id: ID,
         accounts: accounts::BuyResaleTicket {
@@ -1026,6 +1311,7 @@ pub fn ix_buy_resale_ticket(
             listing,
             seller_wallet,
             royalty_vault,
+            compliance_registry,
             system_program: solana_sdk::system_program::id(),
         }
         .to_account_metas(None),
@@ -1107,6 +1393,7 @@ pub fn ix_create_financing_offer(
     financing_offer: Pubkey,
     input: FinancingOfferInput,
 ) -> Instruction {
+    let (compliance_registry, _) = compliance_registry_pda(event_account);
     Instruction {
         program_id: ID,
         accounts: accounts::CreateFinancingOffer {
@@ -1116,6 +1403,7 @@ pub fn ix_create_financing_offer(
             organizer_profile,
             event_account,
             financing_offer,
+            compliance_registry,
             system_program: solana_sdk::system_program::id(),
         }
         .to_account_metas(None),
@@ -1253,6 +1541,7 @@ pub fn ix_settle_primary_revenue(
     protocol_bps: u16,
     royalty_bps: u16,
     other_bps: u16,
+    settlement_reference: [u8; 16],
 ) -> Instruction {
     Instruction {
         program_id: ID,
@@ -1277,6 +1566,7 @@ pub fn ix_settle_primary_revenue(
             protocol_bps,
             royalty_bps,
             other_bps,
+            settlement_reference,
         }
         .data(),
     }
@@ -1300,6 +1590,7 @@ pub fn ix_settle_resale_revenue(
     protocol_bps: u16,
     royalty_bps: u16,
     other_bps: u16,
+    settlement_reference: [u8; 16],
 ) -> Instruction {
     Instruction {
         program_id: ID,
@@ -1324,6 +1615,7 @@ pub fn ix_settle_resale_revenue(
             protocol_bps,
             royalty_bps,
             other_bps,
+            settlement_reference,
         }
         .data(),
     }
@@ -1652,5 +1944,146 @@ pub fn ix_set_trust_signal_schema_version(
         }
         .to_account_metas(None),
         data: instruction::SetTrustSignalSchemaVersion { new_schema_version }.data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn ix_initialize_vault(
+    payer: Pubkey,
+    authority: Pubkey,
+    protocol_config: Pubkey,
+    organizer_profile: Pubkey,
+    event_account: Pubkey,
+    financing_offer: Pubkey,
+    vault_state: Pubkey,
+    vault: Pubkey,
+    role_binding: Pubkey,
+    kind: u8,
+    parent: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::InitializeVault {
+            payer,
+            authority,
+            protocol_config,
+            organizer_profile,
+            event_account,
+            financing_offer,
+            vault_state,
+            vault,
+            role_binding,
+            system_program: solana_sdk::system_program::id(),
+        }
+        .to_account_metas(None),
+        data: instruction::InitializeVault { kind, parent }.data(),
+    }
+}
+
+pub fn ix_snapshot_vault(
+    vault_state: Pubkey,
+    vault: Pubkey,
+    kind: u8,
+    parent: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::SnapshotVault { vault_state, vault }.to_account_metas(None),
+        data: instruction::SnapshotVault { kind, parent }.data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn ix_withdraw_vault(
+    authority: Pubkey,
+    vault_state: Pubkey,
+    vault: Pubkey,
+    destination: Pubkey,
+    role_binding: Pubkey,
+    kind: u8,
+    parent: Pubkey,
+    amount_lamports: u64,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::WithdrawVault {
+            authority,
+            vault_state,
+            vault,
+            destination,
+            role_binding,
+            system_program: solana_sdk::system_program::id(),
+        }
+        .to_account_metas(None),
+        data: instruction::WithdrawVault {
+            kind,
+            parent,
+            amount_lamports,
+        }
+        .data(),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn ix_upsert_registry_entry(
+    payer: Pubkey,
+    authority: Pubkey,
+    protocol_config: Pubkey,
+    organizer_profile: Pubkey,
+    event_account: Pubkey,
+    compliance_registry: Pubkey,
+    scope: u8,
+    target: Pubkey,
+    subject: Pubkey,
+    list_type: u8,
+    is_allowed: bool,
+    decision_code: u16,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::UpsertRegistryEntry {
+            payer,
+            authority,
+            protocol_config,
+            organizer_profile,
+            event_account,
+            compliance_registry,
+            system_program: solana_sdk::system_program::id(),
+        }
+        .to_account_metas(None),
+        data: instruction::UpsertRegistryEntry {
+            scope,
+            target,
+            subject,
+            list_type,
+            is_allowed,
+            decision_code,
+        }
+        .data(),
+    }
+}
+
+pub fn ix_set_event_restrictions(
+    authority: Pubkey,
+    protocol_config: Pubkey,
+    organizer_profile: Pubkey,
+    event_account: Pubkey,
+    restriction_flags: u32,
+    decision_code: u16,
+) -> Instruction {
+    Instruction {
+        program_id: ID,
+        accounts: accounts::SetEventRestrictions {
+            authority,
+            protocol_config,
+            organizer_profile,
+            event_account,
+        }
+        .to_account_metas(None),
+        data: instruction::SetEventRestrictions {
+            restriction_flags,
+            decision_code,
+        }
+        .data(),
     }
 }

@@ -13,17 +13,23 @@ pub mod validation;
 pub(crate) use instructions::checkin::{
     __client_accounts_check_in_ticket, __client_accounts_set_check_in_policy,
 };
+pub(crate) use instructions::compliance::{
+    __client_accounts_set_event_restrictions, __client_accounts_upsert_registry_entry,
+};
 pub(crate) use instructions::disputes::{
     __client_accounts_flag_dispute, __client_accounts_refund_ticket,
 };
 pub(crate) use instructions::event::{
     __client_accounts_cancel_event, __client_accounts_close_event, __client_accounts_create_event,
-    __client_accounts_freeze_event, __client_accounts_update_event,
+    __client_accounts_freeze_event, __client_accounts_pause_event, __client_accounts_update_event,
 };
 pub(crate) use instructions::financing::{
     __client_accounts_accept_financing_offer, __client_accounts_clawback_disbursement,
     __client_accounts_create_financing_offer, __client_accounts_disburse_advance,
     __client_accounts_set_financing_freeze,
+};
+pub(crate) use instructions::governance::{
+    __client_accounts_grant_role, __client_accounts_revoke_role, __client_accounts_rotate_authority,
 };
 pub(crate) use instructions::loyalty::{
     __client_accounts_accrue_points, __client_accounts_redeem_points,
@@ -54,28 +60,40 @@ pub(crate) use instructions::ticket_class::{
 pub(crate) use instructions::ticket_state::{
     __client_accounts_set_ticket_metadata, __client_accounts_transition_ticket_status,
 };
+pub(crate) use instructions::treasury::{
+    __client_accounts_initialize_vault, __client_accounts_snapshot_vault,
+    __client_accounts_withdraw_vault,
+};
 pub(crate) use instructions::trust_signal::{
     __client_accounts_flag_abuse, __client_accounts_record_attendance_input,
     __client_accounts_record_purchase_input, __client_accounts_set_schema_version,
 };
 pub(crate) use instructions::{
+    __client_accounts_accept_upgrade_authority_handoff,
+    __client_accounts_emergency_admin_action,
     __client_accounts_initialize_protocol, __client_accounts_pause_protocol,
     __client_accounts_register_protocol_vaults, __client_accounts_set_protocol_authorities,
-    __client_accounts_set_protocol_config,
+    __client_accounts_set_protocol_config, __client_accounts_set_protocol_governance,
 };
 
 use instructions::checkin::check_in_ticket::{CheckInTicket, SetCheckInPolicy};
+use instructions::compliance::set_event_restrictions::SetEventRestrictions;
+use instructions::compliance::upsert_registry_entry::UpsertRegistryEntry;
 use instructions::disputes::flag_dispute::FlagDispute;
 use instructions::disputes::refund_ticket::RefundTicket;
 use instructions::event::cancel_event::{CancelEvent, CloseEvent};
 use instructions::event::create_event::{CreateEvent, EventInput};
 use instructions::event::freeze_event::FreezeEvent;
+use instructions::event::pause_event::PauseEvent;
 use instructions::event::update_event::UpdateEvent;
 use instructions::financing::accept_financing_offer::AcceptFinancingOffer;
 use instructions::financing::clawback_disbursement::ClawbackDisbursement;
 use instructions::financing::create_financing_offer::CreateFinancingOffer;
 use instructions::financing::disburse_advance::DisburseAdvance;
 use instructions::financing::set_financing_freeze::SetFinancingFreeze;
+use instructions::governance::grant_role::GrantRole;
+use instructions::governance::revoke_role::RevokeRole;
+use instructions::governance::rotate_authority::RotateAuthority;
 use instructions::loyalty::accrue_points::{
     AccruePoints, SetEventLoyaltyMultiplier, SetGlobalLoyaltyMultiplier,
 };
@@ -89,6 +107,9 @@ use instructions::primary_sale::buy_ticket::BuyTicket;
 use instructions::primary_sale::issue_comp_ticket::IssueCompTicket;
 use instructions::protocol::initialize_protocol::InitializeProtocol;
 use instructions::protocol::pause_protocol::PauseProtocol;
+use instructions::protocol::governance_hooks::{
+    AcceptUpgradeAuthorityHandoff, EmergencyAdminAction, SetProtocolGovernance,
+};
 use instructions::protocol::set_protocol_config::{
     RegisterProtocolVaults, SetProtocolAuthorities, SetProtocolConfig,
 };
@@ -105,6 +126,9 @@ use instructions::ticket_class::reserve_inventory::ReserveInventory;
 use instructions::ticket_class::update_ticket_class::UpdateTicketClass;
 use instructions::ticket_state::set_ticket_metadata::SetTicketMetadata;
 use instructions::ticket_state::transition_ticket_status::TransitionTicketStatus;
+use instructions::treasury::initialize_vault::InitializeVault;
+use instructions::treasury::snapshot_vault::SnapshotVault;
+use instructions::treasury::withdraw_vault::WithdrawVault;
 use instructions::trust_signal::flag_abuse::FlagAbuse;
 use instructions::trust_signal::record_attendance_input::RecordAttendanceInput;
 use instructions::trust_signal::record_purchase_input::RecordPurchaseInput;
@@ -176,6 +200,72 @@ pub mod ticketing_core {
 
     pub fn pause_protocol(ctx: Context<PauseProtocol>, is_paused: bool) -> Result<()> {
         instructions::protocol::pause_protocol::pause_protocol(ctx, is_paused)
+    }
+
+    pub fn set_multisig_config(
+        ctx: Context<SetProtocolGovernance>,
+        enabled: bool,
+        threshold: u8,
+        signer_1: Pubkey,
+        signer_2: Pubkey,
+        signer_3: Pubkey,
+    ) -> Result<()> {
+        instructions::protocol::governance_hooks::set_multisig_config(
+            ctx, enabled, threshold, signer_1, signer_2, signer_3,
+        )
+    }
+
+    pub fn set_timelock_delay(
+        ctx: Context<SetProtocolGovernance>,
+        timelock_delay_secs: i64,
+    ) -> Result<()> {
+        instructions::protocol::governance_hooks::set_timelock_delay(ctx, timelock_delay_secs)
+    }
+
+    pub fn queue_protocol_config_change(
+        ctx: Context<SetProtocolGovernance>,
+        pending_protocol_fee_bps: u16,
+        pending_max_tickets_per_wallet: u16,
+    ) -> Result<()> {
+        instructions::protocol::governance_hooks::queue_protocol_config_change(
+            ctx,
+            pending_protocol_fee_bps,
+            pending_max_tickets_per_wallet,
+        )
+    }
+
+    pub fn execute_protocol_config_change(ctx: Context<SetProtocolGovernance>) -> Result<()> {
+        instructions::protocol::governance_hooks::execute_protocol_config_change(ctx)
+    }
+
+    pub fn begin_upgrade_authority_handoff(
+        ctx: Context<SetProtocolGovernance>,
+        pending_upgrade_authority: Pubkey,
+    ) -> Result<()> {
+        instructions::protocol::governance_hooks::begin_upgrade_authority_handoff(
+            ctx,
+            pending_upgrade_authority,
+        )
+    }
+
+    pub fn accept_upgrade_authority_handoff(
+        ctx: Context<AcceptUpgradeAuthorityHandoff>,
+    ) -> Result<()> {
+        instructions::protocol::governance_hooks::accept_upgrade_authority_handoff(ctx)
+    }
+
+    pub fn emergency_rotate_admin(
+        ctx: Context<EmergencyAdminAction>,
+        new_admin: Pubkey,
+        new_emergency_admin: Pubkey,
+        reason_code: u16,
+    ) -> Result<()> {
+        instructions::protocol::governance_hooks::emergency_rotate_admin(
+            ctx,
+            new_admin,
+            new_emergency_admin,
+            reason_code,
+        )
     }
 
     pub fn create_organizer(
@@ -330,6 +420,86 @@ pub mod ticketing_core {
         instructions::trust_signal::set_schema_version::set_schema_version(ctx, new_schema_version)
     }
 
+    pub fn upsert_registry_entry(
+        ctx: Context<UpsertRegistryEntry>,
+        scope: u8,
+        target: Pubkey,
+        subject: Pubkey,
+        list_type: u8,
+        is_allowed: bool,
+        decision_code: u16,
+    ) -> Result<()> {
+        instructions::compliance::upsert_registry_entry::upsert_registry_entry(
+            ctx,
+            scope,
+            target,
+            subject,
+            list_type,
+            is_allowed,
+            decision_code,
+        )
+    }
+
+    pub fn set_event_restrictions(
+        ctx: Context<SetEventRestrictions>,
+        restriction_flags: u32,
+        decision_code: u16,
+    ) -> Result<()> {
+        instructions::compliance::set_event_restrictions::set_event_restrictions(
+            ctx,
+            restriction_flags,
+            decision_code,
+        )
+    }
+
+    pub fn grant_role(
+        ctx: Context<GrantRole>,
+        role: u8,
+        scope: u8,
+        starts_at: i64,
+        expires_at: i64,
+    ) -> Result<()> {
+        instructions::governance::grant_role::grant_role(ctx, role, scope, starts_at, expires_at)
+    }
+
+    pub fn revoke_role(
+        ctx: Context<RevokeRole>,
+        role: u8,
+        scope: u8,
+        reason_code: u16,
+    ) -> Result<()> {
+        instructions::governance::revoke_role::revoke_role(ctx, role, scope, reason_code)
+    }
+
+    pub fn rotate_authority(
+        ctx: Context<RotateAuthority>,
+        role: u8,
+        scope: u8,
+        starts_at: i64,
+        expires_at: i64,
+    ) -> Result<()> {
+        instructions::governance::rotate_authority::rotate_authority(
+            ctx, role, scope, starts_at, expires_at,
+        )
+    }
+
+    pub fn initialize_vault(ctx: Context<InitializeVault>, kind: u8, parent: Pubkey) -> Result<()> {
+        instructions::treasury::initialize_vault::initialize_vault(ctx, kind, parent)
+    }
+
+    pub fn snapshot_vault(ctx: Context<SnapshotVault>, kind: u8, parent: Pubkey) -> Result<()> {
+        instructions::treasury::snapshot_vault::snapshot_vault(ctx, kind, parent)
+    }
+
+    pub fn withdraw_vault(
+        ctx: Context<WithdrawVault>,
+        kind: u8,
+        parent: Pubkey,
+        amount_lamports: u64,
+    ) -> Result<()> {
+        instructions::treasury::withdraw_vault::withdraw_vault(ctx, kind, parent, amount_lamports)
+    }
+
     pub fn refund_ticket(
         ctx: Context<RefundTicket>,
         class_id: u16,
@@ -374,6 +544,10 @@ pub mod ticketing_core {
 
     pub fn freeze_event(ctx: Context<FreezeEvent>) -> Result<()> {
         instructions::event::freeze_event::freeze_event(ctx)
+    }
+
+    pub fn pause_event(ctx: Context<PauseEvent>, is_paused: bool) -> Result<()> {
+        instructions::event::pause_event::pause_event(ctx, is_paused)
     }
 
     pub fn cancel_event(ctx: Context<CancelEvent>) -> Result<()> {
@@ -567,6 +741,7 @@ pub mod ticketing_core {
         protocol_bps: u16,
         royalty_bps: u16,
         other_bps: u16,
+        settlement_reference: [u8; 16],
     ) -> Result<()> {
         instructions::settlement::settle_primary_revenue::settle_primary_revenue(
             ctx,
@@ -574,6 +749,7 @@ pub mod ticketing_core {
             protocol_bps,
             royalty_bps,
             other_bps,
+            settlement_reference,
         )
     }
 
@@ -583,6 +759,7 @@ pub mod ticketing_core {
         protocol_bps: u16,
         royalty_bps: u16,
         other_bps: u16,
+        settlement_reference: [u8; 16],
     ) -> Result<()> {
         instructions::settlement::settle_resale_revenue::settle_resale_revenue(
             ctx,
@@ -590,6 +767,7 @@ pub mod ticketing_core {
             protocol_bps,
             royalty_bps,
             other_bps,
+            settlement_reference,
         )
     }
 

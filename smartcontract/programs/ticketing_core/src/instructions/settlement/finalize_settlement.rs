@@ -11,6 +11,8 @@ use crate::{
         EventAccount, FinancingLifecycleStatus, FinancingOffer, OrganizerProfile, ProtocolConfig,
         SettlementLedger,
     },
+    validation::invariants::assert_event_not_paused,
+    utils::correlation::derive_correlation_id,
 };
 
 pub fn finalize_settlement(ctx: Context<FinalizeSettlement>) -> Result<()> {
@@ -18,15 +20,25 @@ pub fn finalize_settlement(ctx: Context<FinalizeSettlement>) -> Result<()> {
         !ctx.accounts.protocol_config.is_paused,
         TicketingError::ProtocolPaused
     );
+    assert_event_not_paused(&ctx.accounts.event_account)?;
 
     let ledger = &mut ctx.accounts.settlement_ledger;
     let financing_offer = &mut ctx.accounts.financing_offer;
+    if ledger.financing_settled && financing_offer.status == FinancingLifecycleStatus::Settled {
+        return Ok(());
+    }
     require!(
         ledger.cumulative_financier_paid_lamports >= financing_offer.repayment_cap_lamports,
         TicketingError::FinancingNotSettled
     );
 
     let now = Clock::get()?.unix_timestamp;
+    let correlation_id = derive_correlation_id(
+        &ctx.accounts.event_account.key(),
+        &financing_offer.key(),
+        now,
+        0x2003,
+    );
     ledger.financing_settled = true;
     if ledger.settled_at == 0 {
         ledger.settled_at = now;
@@ -40,6 +52,7 @@ pub fn finalize_settlement(ctx: Context<FinalizeSettlement>) -> Result<()> {
         organizer: ctx.accounts.organizer_profile.key(),
         financing_offer: financing_offer.key(),
         settlement_ledger: ledger.key(),
+        correlation_id,
         settled_at: ledger.settled_at,
     });
 

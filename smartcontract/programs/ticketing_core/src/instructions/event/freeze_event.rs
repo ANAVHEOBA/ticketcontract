@@ -3,12 +3,15 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::SEED_ORGANIZER,
     error::TicketingError,
+    events::EventStateTransitioned,
     state::{EventAccount, EventStatus, OrganizerProfile},
+    utils::correlation::derive_correlation_id,
 };
 
 pub fn freeze_event(ctx: Context<FreezeEvent>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     let event = &mut ctx.accounts.event_account;
+    let old_status = event.status as u8;
 
     require!(
         event.status == EventStatus::Draft,
@@ -21,6 +24,22 @@ pub fn freeze_event(ctx: Context<FreezeEvent>) -> Result<()> {
 
     event.status = EventStatus::Frozen;
     event.updated_at = now;
+    let correlation_id = derive_correlation_id(
+        &event.key(),
+        &ctx.accounts.authority.key(),
+        now,
+        event.status as u16,
+    );
+    emit!(EventStateTransitioned {
+        event: event.key(),
+        organizer: event.organizer,
+        authority: ctx.accounts.authority.key(),
+        old_status,
+        new_status: event.status as u8,
+        is_paused: event.is_paused,
+        correlation_id,
+        at: now,
+    });
 
     Ok(())
 }

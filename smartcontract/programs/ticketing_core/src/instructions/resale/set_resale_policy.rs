@@ -2,8 +2,8 @@ use anchor_lang::prelude::*;
 
 use crate::{
     constants::{
-        MAX_RESALE_RECIPIENT_LIST_LEN, SEED_EVENT, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG,
-        SEED_RESALE_POLICY, SEED_TICKET_CLASS,
+        MAX_RESALE_RECIPIENT_LIST_LEN, RESALE_POLICY_SCHEMA_VERSION, SEED_EVENT, SEED_ORGANIZER,
+        SEED_PROTOCOL_CONFIG, SEED_RESALE_POLICY, SEED_TICKET_CLASS,
     },
     error::TicketingError,
     events::ResalePolicySet,
@@ -53,6 +53,10 @@ pub fn set_resale_policy(
     let policy = &mut ctx.accounts.resale_policy;
     if policy.created_at == 0 {
         policy.bump = ctx.bumps.resale_policy;
+        policy.schema_version = RESALE_POLICY_SCHEMA_VERSION;
+        policy.deprecated_layout_version = 0;
+        policy.replacement_account = Pubkey::default();
+        policy.deprecated_at = 0;
         policy.event = ctx.accounts.event_account.key();
         policy.ticket_class = ctx.accounts.ticket_class.key();
         policy.class_id = class_id;

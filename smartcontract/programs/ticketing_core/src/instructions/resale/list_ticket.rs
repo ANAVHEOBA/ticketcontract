@@ -98,31 +98,31 @@ pub struct ListTicket<'info> {
         seeds = [SEED_PROTOCOL_CONFIG],
         bump = protocol_config.bump,
     )]
-    pub protocol_config: Account<'info, ProtocolConfig>,
+    pub protocol_config: Box<Account<'info, ProtocolConfig>>,
     #[account(
         seeds = [SEED_ORGANIZER, organizer_profile.authority.as_ref()],
         bump = organizer_profile.bump,
     )]
-    pub organizer_profile: Account<'info, OrganizerProfile>,
+    pub organizer_profile: Box<Account<'info, OrganizerProfile>>,
     #[account(
         seeds = [SEED_EVENT, organizer_profile.key().as_ref(), &event_account.event_id.to_le_bytes()],
         bump = event_account.bump,
         constraint = event_account.organizer == organizer_profile.key() @ TicketingError::Unauthorized,
     )]
-    pub event_account: Account<'info, EventAccount>,
+    pub event_account: Box<Account<'info, EventAccount>>,
     #[account(
         seeds = [SEED_TICKET_CLASS, event_account.key().as_ref(), &class_id.to_le_bytes()],
         bump = ticket_class.bump,
         constraint = ticket_class.event == event_account.key() @ TicketingError::Unauthorized,
         constraint = ticket_class.class_id == class_id @ TicketingError::Unauthorized,
     )]
-    pub ticket_class: Account<'info, TicketClass>,
+    pub ticket_class: Box<Account<'info, TicketClass>>,
     #[account(
         seeds = [SEED_RESALE_POLICY, event_account.key().as_ref(), &class_id.to_le_bytes()],
         bump = resale_policy.bump,
         constraint = resale_policy.ticket_class == ticket_class.key() @ TicketingError::Unauthorized,
     )]
-    pub resale_policy: Account<'info, ResalePolicy>,
+    pub resale_policy: Box<Account<'info, ResalePolicy>>,
     #[account(
         mut,
         seeds = [SEED_TICKET, event_account.key().as_ref(), &class_id.to_le_bytes(), &ticket_id.to_le_bytes()],
@@ -131,7 +131,7 @@ pub struct ListTicket<'info> {
         constraint = ticket.ticket_class == ticket_class.key() @ TicketingError::Unauthorized,
         constraint = ticket.ticket_id == ticket_id @ TicketingError::InvalidTicketId,
     )]
-    pub ticket: Account<'info, Ticket>,
+    pub ticket: Box<Account<'info, Ticket>>,
     #[account(
         init_if_needed,
         payer = seller,
@@ -139,6 +139,6 @@ pub struct ListTicket<'info> {
         seeds = [SEED_LISTING, ticket.key().as_ref()],
         bump,
     )]
-    pub listing: Account<'info, Listing>,
+    pub listing: Box<Account<'info, Listing>>,
     pub system_program: Program<'info, System>,
 }

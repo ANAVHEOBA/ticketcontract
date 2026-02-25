@@ -1,13 +1,19 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    constants::{SEED_EVENT, SEED_FINANCING_OFFER, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG},
+    constants::{
+        COMPLIANCE_DECISION_ALLOW, COMPLIANCE_FLOW_FINANCING, FINANCING_OFFER_SCHEMA_VERSION,
+        SEED_COMPLIANCE_REGISTRY, SEED_EVENT, SEED_FINANCING_OFFER, SEED_ORGANIZER,
+        SEED_PROTOCOL_CONFIG,
+    },
     error::TicketingError,
     events::FinancingOfferCreated,
+    instructions::compliance::evaluate_compliance,
     state::{
         EventAccount, FinancingLifecycleStatus, FinancingOffer, FinancingOfferInput,
         OrganizerProfile, ProtocolConfig,
     },
+    validation::invariants::assert_event_not_paused,
 };
 
 pub fn create_financing_offer(
@@ -18,7 +24,19 @@ pub fn create_financing_offer(
         !ctx.accounts.protocol_config.is_paused,
         TicketingError::ProtocolPaused
     );
+    assert_event_not_paused(&ctx.accounts.event_account)?;
     validate_financing_input(&input)?;
+    let compliance_decision = evaluate_compliance(
+        &ctx.accounts.compliance_registry,
+        COMPLIANCE_FLOW_FINANCING,
+        ctx.accounts.event_account.compliance_restriction_flags,
+        ctx.accounts.authority.key(),
+        ctx.accounts.organizer_profile.authority,
+    )?;
+    require!(
+        compliance_decision == COMPLIANCE_DECISION_ALLOW,
+        TicketingError::ComplianceRejected
+    );
 
     let authority = ctx.accounts.authority.key();
 
@@ -26,6 +44,10 @@ pub fn create_financing_offer(
     let offer = &mut ctx.accounts.financing_offer;
     if offer.created_at == 0 {
         offer.bump = ctx.bumps.financing_offer;
+        offer.schema_version = FINANCING_OFFER_SCHEMA_VERSION;
+        offer.deprecated_layout_version = 0;
+        offer.replacement_account = Pubkey::default();
+        offer.deprecated_at = 0;
         offer.event = ctx.accounts.event_account.key();
         offer.organizer = ctx.accounts.organizer_profile.key();
         offer.created_at = now;
@@ -60,6 +82,8 @@ pub fn create_financing_offer(
     offer.total_disbursed_lamports = 0;
     offer.disbursement_count = 0;
     offer.disbursed_at = 0;
+    offer.compliance_decision_code = compliance_decision;
+    offer.compliance_checked_at = now;
     offer.updated_at = now;
 
     emit!(FinancingOfferCreated {
@@ -122,5 +146,8 @@ pub struct CreateFinancingOffer<'info> {
         bump,
     )]
     pub financing_offer: Account<'info, FinancingOffer>,
+    /// CHECK: optional compliance registry PDA for event-level checks.
+    #[account(seeds = [SEED_COMPLIANCE_REGISTRY, event_account.key().as_ref()], bump)]
+    pub compliance_registry: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }

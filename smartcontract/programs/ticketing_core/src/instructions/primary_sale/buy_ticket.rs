@@ -3,15 +3,18 @@ use anchor_lang::system_program::{self, Transfer};
 
 use crate::{
     constants::{
+        COMPLIANCE_DECISION_ALLOW, COMPLIANCE_FLOW_PRIMARY_SALE, SEED_COMPLIANCE_REGISTRY,
         SEED_EVENT, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG, SEED_TICKET, SEED_TICKET_CLASS,
-        SEED_WALLET_PURCHASE_COUNTER,
+        SEED_WALLET_PURCHASE_COUNTER, TICKET_ACCOUNT_SCHEMA_VERSION,
     },
     error::TicketingError,
     events::TicketPurchased,
+    instructions::compliance::evaluate_compliance,
     state::{
         EventAccount, EventStatus, OrganizerProfile, ProtocolConfig, Ticket, TicketClass,
         TicketStatus, WalletPurchaseCounter,
     },
+    validation::invariants::assert_event_not_paused,
 };
 
 pub fn buy_ticket(
@@ -25,6 +28,7 @@ pub fn buy_ticket(
     let ticket_class = &mut ctx.accounts.ticket_class;
 
     require!(!protocol_config.is_paused, TicketingError::ProtocolPaused);
+    assert_event_not_paused(&ctx.accounts.event_account)?;
     require!(
         ctx.accounts.event_account.status == EventStatus::Draft
             || ctx.accounts.event_account.status == EventStatus::Frozen,
@@ -45,6 +49,17 @@ pub fn buy_ticket(
     require!(
         ticket_id == ticket_class.sold_supply + 1,
         TicketingError::InvalidTicketId
+    );
+    let compliance_decision = evaluate_compliance(
+        &ctx.accounts.compliance_registry,
+        COMPLIANCE_FLOW_PRIMARY_SALE,
+        ctx.accounts.event_account.compliance_restriction_flags,
+        ctx.accounts.buyer.key(),
+        ctx.accounts.organizer_profile.authority,
+    )?;
+    require!(
+        compliance_decision == COMPLIANCE_DECISION_ALLOW,
+        TicketingError::ComplianceRejected
     );
 
     let counter = &mut ctx.accounts.wallet_purchase_counter;
@@ -124,6 +139,10 @@ pub fn buy_ticket(
 
     let ticket = &mut ctx.accounts.ticket;
     ticket.bump = ctx.bumps.ticket;
+    ticket.schema_version = TICKET_ACCOUNT_SCHEMA_VERSION;
+    ticket.deprecated_layout_version = 0;
+    ticket.replacement_account = Pubkey::default();
+    ticket.deprecated_at = 0;
     ticket.event = ctx.accounts.event_account.key();
     ticket.ticket_class = ticket_class.key();
     ticket.owner = ctx.accounts.buyer.key();
@@ -152,6 +171,8 @@ pub fn buy_ticket(
     ticket.metadata_updated_at = 0;
     ticket.transfer_count = 0;
     ticket.last_transfer_at = 0;
+    ticket.compliance_decision_code = compliance_decision;
+    ticket.compliance_checked_at = now;
     ticket.purchase_trust_recorded = false;
     ticket.attendance_trust_recorded = false;
 
@@ -195,18 +216,18 @@ pub struct BuyTicket<'info> {
         seeds = [SEED_PROTOCOL_CONFIG],
         bump = protocol_config.bump,
     )]
-    pub protocol_config: Account<'info, ProtocolConfig>,
+    pub protocol_config: Box<Account<'info, ProtocolConfig>>,
     #[account(
         seeds = [SEED_ORGANIZER, organizer_profile.authority.as_ref()],
         bump = organizer_profile.bump,
     )]
-    pub organizer_profile: Account<'info, OrganizerProfile>,
+    pub organizer_profile: Box<Account<'info, OrganizerProfile>>,
     #[account(
         seeds = [SEED_EVENT, organizer_profile.key().as_ref(), &event_account.event_id.to_le_bytes()],
         bump = event_account.bump,
         constraint = event_account.organizer == organizer_profile.key() @ TicketingError::Unauthorized,
     )]
-    pub event_account: Account<'info, EventAccount>,
+    pub event_account: Box<Account<'info, EventAccount>>,
     #[account(
         mut,
         seeds = [SEED_TICKET_CLASS, event_account.key().as_ref(), &class_id.to_le_bytes()],
@@ -214,7 +235,7 @@ pub struct BuyTicket<'info> {
         constraint = ticket_class.event == event_account.key() @ TicketingError::Unauthorized,
         constraint = ticket_class.class_id == class_id @ TicketingError::Unauthorized,
     )]
-    pub ticket_class: Account<'info, TicketClass>,
+    pub ticket_class: Box<Account<'info, TicketClass>>,
     #[account(
         init,
         payer = buyer,
@@ -222,7 +243,7 @@ pub struct BuyTicket<'info> {
         seeds = [SEED_TICKET, event_account.key().as_ref(), &class_id.to_le_bytes(), &ticket_id.to_le_bytes()],
         bump,
     )]
-    pub ticket: Account<'info, Ticket>,
+    pub ticket: Box<Account<'info, Ticket>>,
     #[account(
         init_if_needed,
         payer = buyer,
@@ -230,7 +251,7 @@ pub struct BuyTicket<'info> {
         seeds = [SEED_WALLET_PURCHASE_COUNTER, event_account.key().as_ref(), ticket_class.key().as_ref(), buyer.key().as_ref()],
         bump,
     )]
-    pub wallet_purchase_counter: Account<'info, WalletPurchaseCounter>,
+    pub wallet_purchase_counter: Box<Account<'info, WalletPurchaseCounter>>,
     #[account(mut, constraint = protocol_fee_vault.key() == protocol_config.fee_vault @ TicketingError::Unauthorized)]
     pub protocol_fee_vault: SystemAccount<'info>,
     #[account(mut, constraint = organizer_payout_wallet.key() == organizer_profile.payout_wallet @ TicketingError::Unauthorized)]
@@ -238,5 +259,8 @@ pub struct BuyTicket<'info> {
     /// CHECK: validated at runtime against `ticket_class.stakeholder_wallet` when `stakeholder_bps > 0`.
     #[account(mut)]
     pub stakeholder_wallet: UncheckedAccount<'info>,
+    /// CHECK: optional compliance registry PDA for event-level checks.
+    #[account(seeds = [SEED_COMPLIANCE_REGISTRY, event_account.key().as_ref()], bump)]
+    pub compliance_registry: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }

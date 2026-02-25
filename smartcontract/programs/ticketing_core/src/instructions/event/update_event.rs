@@ -3,7 +3,9 @@ use anchor_lang::prelude::*;
 use crate::{
     constants::SEED_ORGANIZER,
     error::TicketingError,
+    events::EventMetadataUpdated,
     state::{EventAccount, EventStatus, OrganizerProfile},
+    utils::correlation::derive_correlation_id,
 };
 
 use super::create_event::{validate_event_input, EventInput};
@@ -28,6 +30,26 @@ pub fn update_event(ctx: Context<UpdateEvent>, input: EventInput) -> Result<()> 
     event.lock_ts = input.lock_ts;
     event.capacity = input.capacity;
     event.updated_at = now;
+    let correlation_id = derive_correlation_id(
+        &event.key(),
+        &ctx.accounts.authority.key(),
+        now,
+        0x1101,
+    );
+    emit!(EventMetadataUpdated {
+        event: event.key(),
+        organizer: event.organizer,
+        authority: ctx.accounts.authority.key(),
+        title: event.title.clone(),
+        venue: event.venue.clone(),
+        start_ts: event.start_ts,
+        end_ts: event.end_ts,
+        sales_start_ts: event.sales_start_ts,
+        lock_ts: event.lock_ts,
+        capacity: event.capacity,
+        correlation_id,
+        at: now,
+    });
 
     Ok(())
 }

@@ -3,15 +3,18 @@ use anchor_lang::system_program::{self, Transfer};
 
 use crate::{
     constants::{
-        SEED_EVENT, SEED_LISTING, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG, SEED_RESALE_POLICY,
-        SEED_TICKET, SEED_TICKET_CLASS,
+        COMPLIANCE_DECISION_ALLOW, COMPLIANCE_FLOW_RESALE, SEED_COMPLIANCE_REGISTRY, SEED_EVENT,
+        SEED_LISTING, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG, SEED_RESALE_POLICY, SEED_TICKET,
+        SEED_TICKET_CLASS,
     },
     error::TicketingError,
     events::{ResaleSettlement, TicketResold},
+    instructions::compliance::evaluate_compliance,
     state::{
         EventAccount, Listing, OrganizerProfile, ProtocolConfig, ResalePolicy, Ticket, TicketClass,
         TicketStatus,
     },
+    validation::invariants::assert_event_not_paused,
 };
 
 pub fn buy_resale_ticket(
@@ -24,6 +27,7 @@ pub fn buy_resale_ticket(
         !ctx.accounts.protocol_config.is_paused,
         TicketingError::ProtocolPaused
     );
+    assert_event_not_paused(&ctx.accounts.event_account)?;
     require!(
         ctx.accounts.ticket_class.is_resale_enabled,
         TicketingError::ResaleDisabled
@@ -55,6 +59,17 @@ pub fn buy_resale_ticket(
     require!(
         listing.price_lamports <= max_price_lamports,
         TicketingError::InvalidResalePrice
+    );
+    let compliance_decision = evaluate_compliance(
+        &ctx.accounts.compliance_registry,
+        COMPLIANCE_FLOW_RESALE,
+        ctx.accounts.event_account.compliance_restriction_flags,
+        ctx.accounts.buyer.key(),
+        ctx.accounts.organizer_profile.authority,
+    )?;
+    require!(
+        compliance_decision == COMPLIANCE_DECISION_ALLOW,
+        TicketingError::ComplianceRejected
     );
 
     let max_allowed = (u128::from(ctx.accounts.ticket_class.face_price_lamports)
@@ -132,6 +147,8 @@ pub fn buy_resale_ticket(
         .checked_add(1)
         .ok_or(TicketingError::MathOverflow)?;
     ticket.last_transfer_at = now;
+    ticket.compliance_decision_code = compliance_decision;
+    ticket.compliance_checked_at = now;
     ticket.status_updated_at = now;
 
     listing.is_active = false;
@@ -236,5 +253,8 @@ pub struct BuyResaleTicket<'info> {
     pub seller_wallet: SystemAccount<'info>,
     #[account(mut, constraint = royalty_vault.key() == resale_policy.royalty_vault @ TicketingError::Unauthorized)]
     pub royalty_vault: SystemAccount<'info>,
+    /// CHECK: optional compliance registry PDA for event-level checks.
+    #[account(seeds = [SEED_COMPLIANCE_REGISTRY, event_account.key().as_ref()], bump)]
+    pub compliance_registry: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }

@@ -31,6 +31,69 @@ pub struct ProtocolVaultsUpdated {
 }
 
 #[event]
+pub struct ProtocolUpgradeHandoffStarted {
+    pub admin: Pubkey,
+    pub current_upgrade_authority: Pubkey,
+    pub pending_upgrade_authority: Pubkey,
+    pub ready_at: i64,
+    pub at: i64,
+}
+
+#[event]
+pub struct ProtocolUpgradeAuthorityAccepted {
+    pub previous_upgrade_authority: Pubkey,
+    pub new_upgrade_authority: Pubkey,
+    pub accepted_by: Pubkey,
+    pub at: i64,
+}
+
+#[event]
+pub struct ProtocolMultisigConfigUpdated {
+    pub admin: Pubkey,
+    pub enabled: bool,
+    pub threshold: u8,
+    pub signer_1: Pubkey,
+    pub signer_2: Pubkey,
+    pub signer_3: Pubkey,
+    pub at: i64,
+}
+
+#[event]
+pub struct ProtocolTimelockUpdated {
+    pub admin: Pubkey,
+    pub timelock_delay_secs: i64,
+    pub at: i64,
+}
+
+#[event]
+pub struct ProtocolConfigChangeQueued {
+    pub admin: Pubkey,
+    pub pending_protocol_fee_bps: u16,
+    pub pending_max_tickets_per_wallet: u16,
+    pub execute_at: i64,
+    pub at: i64,
+}
+
+#[event]
+pub struct ProtocolConfigChangeExecuted {
+    pub admin: Pubkey,
+    pub protocol_fee_bps: u16,
+    pub max_tickets_per_wallet: u16,
+    pub at: i64,
+}
+
+#[event]
+pub struct ProtocolEmergencyAdminAction {
+    pub emergency_admin: Pubkey,
+    pub old_admin: Pubkey,
+    pub new_admin: Pubkey,
+    pub new_emergency_admin: Pubkey,
+    pub nonce: u64,
+    pub reason_code: u16,
+    pub at: i64,
+}
+
+#[event]
 pub struct TicketPurchased {
     pub event: Pubkey,
     pub ticket_class: Pubkey,
@@ -216,6 +279,7 @@ pub struct RevenueWaterfallSettled {
     pub protocol_amount: u64,
     pub royalty_amount: u64,
     pub other_amount: u64,
+    pub correlation_id: [u8; 16],
     pub at: i64,
 }
 
@@ -225,7 +289,19 @@ pub struct FinancingSettled {
     pub organizer: Pubkey,
     pub financing_offer: Pubkey,
     pub settlement_ledger: Pubkey,
+    pub correlation_id: [u8; 16],
     pub settled_at: i64,
+}
+
+#[event]
+pub struct FinancialDistributionLegSettled {
+    pub settlement_ledger: Pubkey,
+    pub source_wallet: Pubkey,
+    pub destination_wallet: Pubkey,
+    pub leg_type: u8,
+    pub amount_lamports: u64,
+    pub correlation_id: [u8; 16],
+    pub at: i64,
 }
 
 #[event]
@@ -341,5 +417,145 @@ pub struct TrustSignalSchemaVersionUpdated {
     pub trust_signal: Pubkey,
     pub old_schema_version: u16,
     pub new_schema_version: u16,
+    pub at: i64,
+}
+
+#[event]
+pub struct RoleGranted {
+    pub role_binding: Pubkey,
+    pub role: u8,
+    pub scope: u8,
+    pub target: Pubkey,
+    pub subject: Pubkey,
+    pub granter: Pubkey,
+    pub starts_at: i64,
+    pub expires_at: i64,
+    pub audit_reference: [u8; 16],
+    pub correlation_id: [u8; 16],
+    pub at: i64,
+}
+
+#[event]
+pub struct RoleRevoked {
+    pub role_binding: Pubkey,
+    pub role: u8,
+    pub scope: u8,
+    pub target: Pubkey,
+    pub subject: Pubkey,
+    pub revoker: Pubkey,
+    pub reason_code: u16,
+    pub audit_reference: [u8; 16],
+    pub correlation_id: [u8; 16],
+    pub at: i64,
+}
+
+#[event]
+pub struct RoleAuthorityRotated {
+    pub old_role_binding: Pubkey,
+    pub new_role_binding: Pubkey,
+    pub role: u8,
+    pub scope: u8,
+    pub target: Pubkey,
+    pub old_subject: Pubkey,
+    pub new_subject: Pubkey,
+    pub authority: Pubkey,
+    pub audit_reference: [u8; 16],
+    pub correlation_id: [u8; 16],
+    pub at: i64,
+}
+
+#[event]
+pub struct GovernanceAuditReferenceStored {
+    pub role_binding: Pubkey,
+    pub target: Pubkey,
+    pub subject: Pubkey,
+    pub role: u8,
+    pub scope: u8,
+    pub audit_reference: [u8; 16],
+    pub correlation_id: [u8; 16],
+    pub at: i64,
+}
+
+#[event]
+pub struct EventStateTransitioned {
+    pub event: Pubkey,
+    pub organizer: Pubkey,
+    pub authority: Pubkey,
+    pub old_status: u8,
+    pub new_status: u8,
+    pub is_paused: bool,
+    pub correlation_id: [u8; 16],
+    pub at: i64,
+}
+
+#[event]
+pub struct EventMetadataUpdated {
+    pub event: Pubkey,
+    pub organizer: Pubkey,
+    pub authority: Pubkey,
+    pub title: String,
+    pub venue: String,
+    pub start_ts: i64,
+    pub end_ts: i64,
+    pub sales_start_ts: i64,
+    pub lock_ts: i64,
+    pub capacity: u32,
+    pub correlation_id: [u8; 16],
+    pub at: i64,
+}
+
+#[event]
+pub struct VaultInitialized {
+    pub vault: Pubkey,
+    pub kind: u8,
+    pub parent: Pubkey,
+    pub controller: Pubkey,
+    pub authority: Pubkey,
+    pub at: i64,
+}
+
+#[event]
+pub struct VaultSnapshotRecorded {
+    pub vault: Pubkey,
+    pub kind: u8,
+    pub parent: Pubkey,
+    pub balance_lamports: u64,
+    pub total_inflow_lamports: u64,
+    pub total_outflow_lamports: u64,
+    pub at: i64,
+}
+
+#[event]
+pub struct VaultWithdrawn {
+    pub vault: Pubkey,
+    pub kind: u8,
+    pub parent: Pubkey,
+    pub destination: Pubkey,
+    pub authority: Pubkey,
+    pub amount_lamports: u64,
+    pub balance_lamports: u64,
+    pub total_outflow_lamports: u64,
+    pub at: i64,
+}
+
+#[event]
+pub struct ComplianceRegistryUpdated {
+    pub registry: Pubkey,
+    pub scope: u8,
+    pub target: Pubkey,
+    pub subject: Pubkey,
+    pub list_type: u8,
+    pub is_allowed: bool,
+    pub decision_code: u16,
+    pub authority: Pubkey,
+    pub at: i64,
+}
+
+#[event]
+pub struct EventComplianceFlagsUpdated {
+    pub event: Pubkey,
+    pub organizer: Pubkey,
+    pub authority: Pubkey,
+    pub restriction_flags: u32,
     pub at: i64,
 }

@@ -20,6 +20,10 @@ pub struct ResalePolicyInput {
 #[derive(InitSpace)]
 pub struct ResalePolicy {
     pub bump: u8,
+    pub schema_version: u16,
+    pub deprecated_layout_version: u16,
+    pub replacement_account: Pubkey,
+    pub deprecated_at: i64,
     pub event: Pubkey,
     pub ticket_class: Pubkey,
     pub class_id: u16,
@@ -35,4 +39,17 @@ pub struct ResalePolicy {
     pub blacklist: Vec<Pubkey>,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+impl ResalePolicy {
+    pub fn mark_layout_deprecated(
+        &mut self,
+        deprecated_layout_version: u16,
+        replacement_account: Pubkey,
+        now: i64,
+    ) {
+        self.deprecated_layout_version = deprecated_layout_version;
+        self.replacement_account = replacement_account;
+        self.deprecated_at = now;
+    }
 }

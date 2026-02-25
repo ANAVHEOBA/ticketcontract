@@ -154,4 +154,54 @@ pub enum TicketingError {
     InvalidTrustFlagBits,
     #[msg("Invalid trust signal schema version")]
     InvalidTrustSchemaVersion,
+    #[msg("Invalid role scope")]
+    InvalidRoleScope,
+    #[msg("Invalid role")]
+    InvalidRole,
+    #[msg("Invalid role grant window")]
+    InvalidRoleGrantWindow,
+    #[msg("Role is not active")]
+    RoleNotActive,
+    #[msg("Invalid vault kind")]
+    InvalidVaultKind,
+    #[msg("Invalid vault parent")]
+    InvalidVaultParent,
+    #[msg("Insufficient vault balance")]
+    InsufficientVaultBalance,
+    #[msg("Compliance registry entry limit reached")]
+    ComplianceRegistryFull,
+    #[msg("Invalid compliance scope")]
+    InvalidComplianceScope,
+    #[msg("Invalid compliance list type")]
+    InvalidComplianceListType,
+    #[msg("Compliance check rejected")]
+    ComplianceRejected,
+    #[msg("Event is paused")]
+    EventPaused,
+    #[msg("Settlement is already in progress")]
+    SettlementInProgress,
+    #[msg("Invalid settlement reference")]
+    InvalidSettlementReference,
+    #[msg("Account size mismatch")]
+    AccountSizeMismatch,
+    #[msg("Account is not rent exempt")]
+    AccountNotRentExempt,
+    #[msg("Timelock is required for this action")]
+    TimelockRequired,
+    #[msg("Timelock is not yet ready")]
+    TimelockNotReady,
+    #[msg("No pending config change")]
+    NoPendingConfigChange,
+    #[msg("Invalid multisig config")]
+    InvalidMultisigConfig,
+    #[msg("Multisig signoff missing")]
+    MultisigSignoffMissing,
+    #[msg("No upgrade handoff in progress")]
+    NoUpgradeHandoffInProgress,
+    #[msg("Upgrade handoff not ready")]
+    UpgradeHandoffNotReady,
+    #[msg("Only pending upgrade authority can accept handoff")]
+    InvalidPendingUpgradeAuthority,
+    #[msg("Emergency procedure requires paused protocol")]
+    EmergencyRequiresPausedProtocol,
 }

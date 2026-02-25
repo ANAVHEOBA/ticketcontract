@@ -7,10 +7,19 @@ use crate::{
         SEED_SETTLEMENT_LEDGER,
     },
     error::TicketingError,
-    events::{FinancingSettled, RevenueWaterfallSettled},
+    events::{FinancialDistributionLegSettled, FinancingSettled, RevenueWaterfallSettled},
+    math::safe_math::{prorata_bps, SafeMath},
     state::{
         EventAccount, FinancingLifecycleStatus, FinancingOffer, OrganizerProfile, ProtocolConfig,
         SettlementLedger,
+    },
+    utils::correlation::derive_correlation_id,
+    validation::{
+        invariants::{assert_account_size, assert_event_not_paused, assert_rent_exempt},
+        settlement::{
+            assert_settlement_reference, assert_waterfall_bps, begin_settlement,
+            finish_settlement, try_idempotent_replay,
+        },
     },
 };
 
@@ -20,6 +29,7 @@ pub fn settle_primary_revenue(
     protocol_bps: u16,
     royalty_bps: u16,
     other_bps: u16,
+    settlement_reference: [u8; 16],
 ) -> Result<()> {
     settle_revenue_waterfall(
         ctx.accounts.into(),
@@ -27,6 +37,7 @@ pub fn settle_primary_revenue(
         protocol_bps,
         royalty_bps,
         other_bps,
+        settlement_reference,
         true,
     )
 }
@@ -37,12 +48,15 @@ pub(crate) fn settle_revenue_waterfall<'info>(
     protocol_bps: u16,
     royalty_bps: u16,
     other_bps: u16,
+    settlement_reference: [u8; 16],
     is_primary: bool,
 ) -> Result<()> {
     require!(
         !accounts.protocol_config.is_paused,
         TicketingError::ProtocolPaused
     );
+    assert_event_not_paused(accounts.event_account)?;
+    assert_settlement_reference(&settlement_reference)?;
     require!(
         accounts.organizer_authority.key() == accounts.organizer_profile.authority,
         TicketingError::Unauthorized
@@ -52,48 +66,44 @@ pub(crate) fn settle_revenue_waterfall<'info>(
         TicketingError::InvalidSettlementAmount
     );
 
-    let total_priority_three_bps = u32::from(protocol_bps)
-        .checked_add(u32::from(royalty_bps))
-        .and_then(|v| v.checked_add(u32::from(other_bps)))
-        .ok_or(TicketingError::MathOverflow)?;
-    require!(
-        total_priority_three_bps <= 10_000,
-        TicketingError::InvalidWaterfallBps
-    );
+    assert_waterfall_bps(protocol_bps, royalty_bps, other_bps)?;
 
-    let protocol_amount =
-        prorata_amount(gross_revenue_lamports, protocol_bps).ok_or(TicketingError::MathOverflow)?;
-    let royalty_amount =
-        prorata_amount(gross_revenue_lamports, royalty_bps).ok_or(TicketingError::MathOverflow)?;
-    let other_amount =
-        prorata_amount(gross_revenue_lamports, other_bps).ok_or(TicketingError::MathOverflow)?;
+    let expected_ledger_len = 8 + SettlementLedger::INIT_SPACE;
+    assert_account_size(
+        &accounts.settlement_ledger.to_account_info(),
+        expected_ledger_len,
+    )?;
+    assert_rent_exempt(&accounts.settlement_ledger.to_account_info())?;
+
+    let ledger = &mut accounts.settlement_ledger;
+    if try_idempotent_replay(ledger, &settlement_reference) {
+        return Ok(());
+    }
+    begin_settlement(ledger)?;
+
+    let protocol_amount = prorata_bps(gross_revenue_lamports, protocol_bps)?;
+    let royalty_amount = prorata_bps(gross_revenue_lamports, royalty_bps)?;
+    let other_amount = prorata_bps(gross_revenue_lamports, other_bps)?;
 
     let priority_three_total = protocol_amount
-        .checked_add(royalty_amount)
-        .and_then(|v| v.checked_add(other_amount))
-        .ok_or(TicketingError::MathOverflow)?;
+        .safe_add(royalty_amount)?
+        .safe_add(other_amount)?;
     require!(
         priority_three_total <= gross_revenue_lamports,
         TicketingError::MathOverflow
     );
 
-    let priority_one_two_pool = gross_revenue_lamports
-        .checked_sub(priority_three_total)
-        .ok_or(TicketingError::MathOverflow)?;
+    let priority_one_two_pool = gross_revenue_lamports.safe_sub(priority_three_total)?;
 
     let repayment_remaining = accounts
         .financing_offer
         .repayment_cap_lamports
         .checked_sub(
-            accounts
-                .settlement_ledger
-                .cumulative_financier_paid_lamports,
+            ledger.cumulative_financier_paid_lamports,
         )
         .unwrap_or(0);
     let financier_amount = core::cmp::min(priority_one_two_pool, repayment_remaining);
-    let organizer_amount = priority_one_two_pool
-        .checked_sub(financier_amount)
-        .ok_or(TicketingError::MathOverflow)?;
+    let organizer_amount = priority_one_two_pool.safe_sub(financier_amount)?;
 
     transfer_lamports(
         accounts.system_program,
@@ -127,7 +137,12 @@ pub(crate) fn settle_revenue_waterfall<'info>(
     )?;
 
     let now = Clock::get()?.unix_timestamp;
-    let ledger = &mut accounts.settlement_ledger;
+    let correlation_id = derive_correlation_id(
+        &accounts.event_account.key(),
+        &accounts.financing_offer.key(),
+        now,
+        if is_primary { 0x2001 } else { 0x2002 },
+    );
     if ledger.created_at == 0 {
         let (_, bump) = Pubkey::find_program_address(
             &[
@@ -146,34 +161,27 @@ pub(crate) fn settle_revenue_waterfall<'info>(
     if is_primary {
         ledger.cumulative_primary_routed_lamports = ledger
             .cumulative_primary_routed_lamports
-            .checked_add(gross_revenue_lamports)
-            .ok_or(TicketingError::MathOverflow)?;
+            .safe_add(gross_revenue_lamports)?;
     } else {
         ledger.cumulative_secondary_routed_lamports = ledger
             .cumulative_secondary_routed_lamports
-            .checked_add(gross_revenue_lamports)
-            .ok_or(TicketingError::MathOverflow)?;
+            .safe_add(gross_revenue_lamports)?;
     }
     ledger.cumulative_financier_paid_lamports = ledger
         .cumulative_financier_paid_lamports
-        .checked_add(financier_amount)
-        .ok_or(TicketingError::MathOverflow)?;
+        .safe_add(financier_amount)?;
     ledger.cumulative_organizer_paid_lamports = ledger
         .cumulative_organizer_paid_lamports
-        .checked_add(organizer_amount)
-        .ok_or(TicketingError::MathOverflow)?;
+        .safe_add(organizer_amount)?;
     ledger.cumulative_protocol_paid_lamports = ledger
         .cumulative_protocol_paid_lamports
-        .checked_add(protocol_amount)
-        .ok_or(TicketingError::MathOverflow)?;
+        .safe_add(protocol_amount)?;
     ledger.cumulative_royalty_paid_lamports = ledger
         .cumulative_royalty_paid_lamports
-        .checked_add(royalty_amount)
-        .ok_or(TicketingError::MathOverflow)?;
+        .safe_add(royalty_amount)?;
     ledger.cumulative_other_paid_lamports = ledger
         .cumulative_other_paid_lamports
-        .checked_add(other_amount)
-        .ok_or(TicketingError::MathOverflow)?;
+        .safe_add(other_amount)?;
     ledger.updated_at = now;
 
     let obligations_completed = ledger.cumulative_financier_paid_lamports
@@ -191,9 +199,56 @@ pub(crate) fn settle_revenue_waterfall<'info>(
             organizer: accounts.organizer_profile.key(),
             financing_offer: accounts.financing_offer.key(),
             settlement_ledger: ledger.key(),
+            correlation_id,
             settled_at: ledger.settled_at,
         });
     }
+
+    emit!(FinancialDistributionLegSettled {
+        settlement_ledger: ledger.key(),
+        source_wallet: accounts.revenue_source.key(),
+        destination_wallet: accounts.financier_wallet.key(),
+        leg_type: 1,
+        amount_lamports: financier_amount,
+        correlation_id,
+        at: now,
+    });
+    emit!(FinancialDistributionLegSettled {
+        settlement_ledger: ledger.key(),
+        source_wallet: accounts.revenue_source.key(),
+        destination_wallet: accounts.organizer_payout_wallet.key(),
+        leg_type: 2,
+        amount_lamports: organizer_amount,
+        correlation_id,
+        at: now,
+    });
+    emit!(FinancialDistributionLegSettled {
+        settlement_ledger: ledger.key(),
+        source_wallet: accounts.revenue_source.key(),
+        destination_wallet: accounts.protocol_fee_vault.key(),
+        leg_type: 3,
+        amount_lamports: protocol_amount,
+        correlation_id,
+        at: now,
+    });
+    emit!(FinancialDistributionLegSettled {
+        settlement_ledger: ledger.key(),
+        source_wallet: accounts.revenue_source.key(),
+        destination_wallet: accounts.royalty_vault.key(),
+        leg_type: 4,
+        amount_lamports: royalty_amount,
+        correlation_id,
+        at: now,
+    });
+    emit!(FinancialDistributionLegSettled {
+        settlement_ledger: ledger.key(),
+        source_wallet: accounts.revenue_source.key(),
+        destination_wallet: accounts.other_vault.key(),
+        leg_type: 5,
+        amount_lamports: other_amount,
+        correlation_id,
+        at: now,
+    });
 
     emit!(RevenueWaterfallSettled {
         event: accounts.event_account.key(),
@@ -208,16 +263,12 @@ pub(crate) fn settle_revenue_waterfall<'info>(
         protocol_amount,
         royalty_amount,
         other_amount,
+        correlation_id,
         at: now,
     });
+    finish_settlement(ledger, settlement_reference);
 
     Ok(())
-}
-
-fn prorata_amount(total: u64, bps: u16) -> Option<u64> {
-    (u128::from(total) * u128::from(bps) / 10_000u128)
-        .try_into()
-        .ok()
 }
 
 fn transfer_lamports<'info>(
@@ -229,6 +280,7 @@ fn transfer_lamports<'info>(
     if amount == 0 {
         return Ok(());
     }
+    require_keys_neq!(from.key(), to.key(), TicketingError::InvalidSettlementAmount);
 
     let cpi_accounts = Transfer { from, to };
     let cpi_ctx = CpiContext::new(system_program.to_account_info(), cpi_accounts);

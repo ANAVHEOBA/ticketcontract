@@ -2,8 +2,8 @@ use anchor_lang::prelude::*;
 
 use crate::{
     constants::{
-        MAX_LOYALTY_MULTIPLIER_BPS, SEED_EVENT, SEED_LOYALTY_LEDGER, SEED_ORGANIZER,
-        SEED_PROTOCOL_CONFIG, SEED_TICKET, SEED_TICKET_CLASS,
+        LOYALTY_LEDGER_SCHEMA_VERSION, MAX_LOYALTY_MULTIPLIER_BPS, SEED_EVENT,
+        SEED_LOYALTY_LEDGER, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG, SEED_TICKET, SEED_TICKET_CLASS,
     },
     error::TicketingError,
     events::{LoyaltyEventMultiplierUpdated, LoyaltyGlobalMultiplierUpdated, LoyaltyPointsAccrued},
@@ -150,6 +150,10 @@ pub fn accrue_points(
     let ledger = &mut ctx.accounts.loyalty_ledger;
     if ledger.wallet == Pubkey::default() {
         ledger.bump = ctx.bumps.loyalty_ledger;
+        ledger.schema_version = LOYALTY_LEDGER_SCHEMA_VERSION;
+        ledger.deprecated_layout_version = 0;
+        ledger.replacement_account = Pubkey::default();
+        ledger.deprecated_at = 0;
         ledger.wallet = wallet;
         ledger.total_accrued_points = 0;
         ledger.total_redeemed_points = 0;

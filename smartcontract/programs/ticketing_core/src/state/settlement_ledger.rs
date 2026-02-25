@@ -14,6 +14,8 @@ pub struct SettlementLedger {
     pub cumulative_protocol_paid_lamports: u64,
     pub cumulative_royalty_paid_lamports: u64,
     pub cumulative_other_paid_lamports: u64,
+    pub is_settling: bool,
+    pub last_settlement_reference: [u8; 16],
     pub financing_settled: bool,
     pub settled_at: i64,
     pub created_at: i64,

@@ -1,13 +1,17 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    constants::{SEED_EVENT, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG, SEED_TICKET, SEED_TICKET_CLASS},
+    constants::{
+        SEED_EVENT, SEED_ORGANIZER, SEED_PROTOCOL_CONFIG, SEED_TICKET, SEED_TICKET_CLASS,
+        TICKET_ACCOUNT_SCHEMA_VERSION,
+    },
     error::TicketingError,
     events::TicketCompIssued,
     state::{
         EventAccount, EventStatus, OrganizerProfile, ProtocolConfig, Ticket, TicketClass,
         TicketStatus,
     },
+    validation::invariants::assert_event_not_paused,
 };
 
 pub fn issue_comp_ticket(
@@ -20,6 +24,7 @@ pub fn issue_comp_ticket(
         !ctx.accounts.protocol_config.is_paused,
         TicketingError::ProtocolPaused
     );
+    assert_event_not_paused(&ctx.accounts.event_account)?;
     require!(
         ctx.accounts.event_account.status == EventStatus::Draft
             || ctx.accounts.event_account.status == EventStatus::Frozen,
@@ -55,6 +60,10 @@ pub fn issue_comp_ticket(
 
     let ticket = &mut ctx.accounts.ticket;
     ticket.bump = ctx.bumps.ticket;
+    ticket.schema_version = TICKET_ACCOUNT_SCHEMA_VERSION;
+    ticket.deprecated_layout_version = 0;
+    ticket.replacement_account = Pubkey::default();
+    ticket.deprecated_at = 0;
     ticket.event = ctx.accounts.event_account.key();
     ticket.ticket_class = ticket_class.key();
     ticket.owner = ctx.accounts.recipient.key();
@@ -83,6 +92,8 @@ pub fn issue_comp_ticket(
     ticket.metadata_updated_at = 0;
     ticket.transfer_count = 0;
     ticket.last_transfer_at = 0;
+    ticket.compliance_decision_code = 0;
+    ticket.compliance_checked_at = 0;
     ticket.purchase_trust_recorded = false;
     ticket.attendance_trust_recorded = false;
 
