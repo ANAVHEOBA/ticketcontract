@@ -2,6 +2,7 @@ mod checkin;
 mod common;
 mod compliance;
 mod disputes;
+mod end_to_end;
 mod event;
 mod financing;
 mod global_config;

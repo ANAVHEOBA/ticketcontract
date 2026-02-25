@@ -1,6 +1,12 @@
 {
   "license": "ISC",
   "scripts": {
+    "build:program": "./scripts/build.sh",
+    "test:program": "./scripts/test.sh",
+    "test:e2e": "cargo test -p ticketing_core --test integration end_to_end:: -- --nocapture",
+    "idl:sync": "./scripts/idl-sync.sh",
+    "sanity:idl": "./scripts/idl-client-sanity.sh",
+    "demo": "./scripts/demo.sh",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
   },
