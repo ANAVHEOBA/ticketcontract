@@ -13,6 +13,6 @@ echo "[seed] this script funds local signer and verifies program visibility"
 solana config set --url "$CLUSTER" >/dev/null
 solana airdrop 2 --keypair "$ADMIN_KEYPAIR" --url "$CLUSTER" || true
 solana balance --keypair "$ADMIN_KEYPAIR" --url "$CLUSTER"
-solana program show DyHzPALx4rqgj8X6tycKxFA8KyGscBJ38xdVpCeSL8ej --url "$CLUSTER"
+solana program show Evb4oQnwYDZhabE5E5tuJPg2yvCMGgwMRgkxzzaUw5Rv --url "$CLUSTER"
 
 echo "[seed] complete"

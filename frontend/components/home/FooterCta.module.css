@@ -1,0 +1,28 @@
+.cta {
+  width: min(1200px, 100% - 3rem);
+  margin: 1rem auto 2.2rem;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--card-hover-border-color);
+  background: linear-gradient(90deg, rgba(243, 40, 97, 0.2), rgba(209, 24, 255, 0.15));
+}
+
+.cta h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  font-family: var(--font-display), "Sora", sans-serif;
+}
+
+.cta p {
+  margin: 0.6rem 0 1rem;
+  color: var(--secondary-color);
+}
+
+.cta button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+  background: var(--primary-button-bg-color);
+  color: var(--primary-button-color);
+  font-weight: 600;
+}

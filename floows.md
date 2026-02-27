@@ -147,3 +147,13 @@
 - Provide migration-safe schema evolution strategy.
 - Backward-compatible deserialization for old versions.
 - Explicit deprecation paths for replaced account layouts.
+
+
+
+• Deployment is done and verified on devnet.
+
+  - PROGRAM_ID: Evb4oQnwYDZhabE5E5tuJPg2yvCMGgwMRgkxzzaUw5Rv
+  - Deploy tx signature: 3br7WfL2SXaTxxbrHERbeir7C6v2dLkdmQeeT7cJu8Xepvdk7VXKFZJnMZjdPYZ8WtbWQpxcjRjJvitikF3xLmUQ
+  - IDL account: 4YNrpoWStQZHyDLd9fX36FgUGu13RaHdqb7m9PrMS2jJ
+  - Verified on-chain owner: BPFLoaderUpgradeab1e11111111111111111111111
+  - Last deployed slot: 444799412

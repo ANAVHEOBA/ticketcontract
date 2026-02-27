@@ -1,0 +1,127 @@
+.page {
+  position: relative;
+  min-height: 100vh;
+  color: #fff;
+}
+
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background:
+    radial-gradient(circle at 90% 0, rgba(248, 184, 188, 0.65), transparent 40%),
+    radial-gradient(circle at 10% 10%, rgba(254, 241, 195, 0.55), transparent 36%),
+    radial-gradient(circle at 10% 90%, rgba(0, 224, 255, 0.26), transparent 44%),
+    #0b0d10;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 5rem 1rem 2.5rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.header p {
+  margin: 0.3rem 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.84rem;
+}
+
+.links {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.links a {
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.72rem;
+}
+
+.card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.55rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field span {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.field input {
+  height: 2.2rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(15, 18, 24, 0.72);
+  color: #fff;
+  padding: 0 0.6rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.actions button {
+  height: 1.95rem;
+  border-radius: 0.52rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.76rem;
+  padding: 0 0.72rem;
+  cursor: pointer;
+}
+
+.pre {
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.65rem;
+  background: rgba(15, 18, 24, 0.8);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.75rem;
+  font-size: 0.74rem;
+  overflow: auto;
+}
+
+.caption {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 0.76rem;
+}

@@ -1,0 +1,64 @@
+{
+  "info": {
+    "name": "Ticketing Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "Auth Nonce",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"wallet\": \"{{wallet}}\"\n}" },
+        "url": "{{baseUrl}}/auth/nonce"
+      }
+    },
+    {
+      "name": "Ops Metrics",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/ops/metrics"
+      }
+    },
+    {
+      "name": "Underwriting Proposal",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"organizer_id\": \"org_123\",\n  \"event_id\": \"evt_123\",\n  \"requested_advance_amount\": 5000000,\n  \"projected_gross_revenue\": 25000000,\n  \"tenor_days\": 45\n}"
+        },
+        "url": "{{baseUrl}}/underwriting/financing/proposal"
+      }
+    },
+    {
+      "name": "Resale Compiler Simulate",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"organizer_id\": \"org_123\",\n  \"event_id\": \"evt_123\",\n  \"goals\": {\n    \"liquidity_weight\": 0.5,\n    \"fairness_weight\": 0.3,\n    \"royalty_weight\": 0.2\n  }\n}"
+        },
+        "url": "{{baseUrl}}/resale-compiler/simulate"
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "token", "value": "" },
+    { "key": "wallet", "value": "" }
+  ]
+}

@@ -1,0 +1,40 @@
+.card {
+  border-radius: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 0.75rem 0.9rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.label {
+  margin: 0;
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.link {
+  color: #b7d6ff;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  width: fit-content;
+}
+
+.error {
+  margin: 0;
+  color: #ffb8b8;
+  font-size: 0.78rem;
+}
+
+.pending {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.confirmed {
+  background: rgba(115, 255, 164, 0.12);
+  border-color: rgba(115, 255, 164, 0.25);
+}
+
+.failed {
+  background: rgba(255, 120, 120, 0.1);
+  border-color: rgba(255, 120, 120, 0.25);
+}

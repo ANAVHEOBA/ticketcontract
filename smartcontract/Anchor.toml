@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-ticketing_core = "DyHzPALx4rqgj8X6tycKxFA8KyGscBJ38xdVpCeSL8ej"
+ticketing_core = "Evb4oQnwYDZhabE5E5tuJPg2yvCMGgwMRgkxzzaUw5Rv"
 
 [registry]
 url = "https://api.apr.dev"

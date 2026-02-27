@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "../styles/theme-tokens.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 10%, rgba(243, 40, 97, 0.2), transparent 35%),
+    radial-gradient(circle at 85% 5%, rgba(209, 24, 255, 0.18), transparent 30%),
+    linear-gradient(180deg, #0a0f16 0%, #07090d 100%);
+  color: var(--primary-color);
+  font-family: var(--font-body), "Space Grotesk", "IBM Plex Sans", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.wallet-adapter-modal {
+  background: rgba(4, 6, 10, 0.72) !important;
+  backdrop-filter: blur(8px);
+}
+
+.wallet-adapter-modal-wrapper {
+  max-width: 440px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(28, 30, 38, 0.92) 0%, rgba(20, 22, 30, 0.95) 100%) !important;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.wallet-adapter-modal-title {
+  font-size: 1.06rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  padding: 26px 24px 12px !important;
+  text-align: left !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.wallet-adapter-modal-button-close {
+  top: 14px !important;
+  right: 14px !important;
+  width: 30px;
+  height: 30px;
+  padding: 0 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.wallet-adapter-modal-button-close svg {
+  fill: rgba(255, 255, 255, 0.7) !important;
+}
+
+.wallet-adapter-modal-list {
+  padding: 0 14px 14px !important;
+  margin: 0 !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  height: 48px !important;
+  margin-bottom: 8px;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06) !important;
+  font-size: 0.93rem !important;
+  font-weight: 500 !important;
+  padding: 0 14px !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button-start-icon,
+.wallet-adapter-modal-list .wallet-adapter-button-start-icon img {
+  width: 26px !important;
+  height: 26px !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button span {
+  font-size: 0.75rem !important;
+  opacity: 0.65 !important;
+}

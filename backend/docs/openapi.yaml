@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: Ticketing Backend API
+  version: 0.1.0
+  description: Ticketing platform + financial/control layer backend.
+servers:
+  - url: http://localhost:8080/api/v1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /auth/nonce:
+    post:
+      summary: Request wallet nonce
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet]
+              properties:
+                wallet:
+                  type: string
+      responses:
+        '200':
+          description: Nonce generated
+  /auth/verify:
+    post:
+      summary: Verify SIWS signature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet, nonce, signature]
+              properties:
+                wallet: { type: string }
+                nonce: { type: string }
+                signature: { type: string }
+      responses:
+        '200':
+          description: JWT issued
+  /chain/simulate:
+    post:
+      summary: Simulate Solana transaction
+      responses:
+        '200':
+          description: Simulation output
+  /protocol-admin/pause-protocol:
+    post:
+      summary: Pause protocol (admin)
+      responses:
+        '200':
+          description: Action submitted
+  /organizers:
+    post:
+      summary: Create organizer profile
+      responses:
+        '200':
+          description: Action submitted
+  /events:
+    post:
+      summary: Create event
+      responses:
+        '200':
+          description: Action submitted
+  /ticket-classes:
+    post:
+      summary: Create ticket class
+      responses:
+        '200':
+          description: Action submitted
+  /primary-sale/buy:
+    post:
+      summary: Buy primary ticket
+      responses:
+        '200':
+          description: Purchase receipt
+  /secondary-sale/list:
+    post:
+      summary: List ticket for resale
+      responses:
+        '200':
+          description: Listing submitted
+  /secondary-sale/buy:
+    post:
+      summary: Buy resale listing
+      responses:
+        '200':
+          description: Resale receipt
+  /financing/offers:
+    post:
+      summary: Create financing offer
+      responses:
+        '200':
+          description: Offer tx submitted
+  /settlement/primary:
+    post:
+      summary: Settle primary revenue
+      responses:
+        '200':
+          description: Settlement tx submitted
+  /underwriting/financing/proposal:
+    post:
+      summary: Underwriting risk + financing terms proposal
+      responses:
+        '200':
+          description: Underwriting decision
+  /resale-compiler/simulate:
+    post:
+      summary: Simulate resale policy candidates
+      responses:
+        '200':
+          description: Simulation + recommendation
+  /ops/metrics:
+    get:
+      summary: Ops metrics snapshot
+      responses:
+        '200':
+          description: Metrics
+  /ops/alerts:
+    get:
+      summary: Ops alert snapshot
+      responses:
+        '200':
+          description: Active alerts
+  /ops/audit-logs:
+    get:
+      summary: Admin audit logs
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Logs

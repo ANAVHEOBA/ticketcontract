@@ -1,0 +1,36 @@
+.modules {
+  width: min(1200px, 100% - 3rem);
+  margin: 1rem auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.card {
+  border: 1px solid var(--card-border-color);
+  border-radius: 0.95rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  background: var(--gradient-brand);
+}
+
+.card p {
+  margin: 0;
+  color: var(--secondary-color);
+}
+
+@media (max-width: 920px) {
+  .modules {
+    grid-template-columns: 1fr;
+  }
+}

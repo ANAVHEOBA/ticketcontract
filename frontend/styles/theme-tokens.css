@@ -1,0 +1,43 @@
+:root {
+  --gray-20: #d9dce4;
+  --gray-40: #aeb5c2;
+  --gray-50: #969eae;
+  --gray-60: #7f8798;
+  --gray-70: #676f80;
+  --gray-80: #4e5666;
+  --gray-90: #2f3541;
+  --gray-100: #1f242d;
+  --white: #f5f8ff;
+  --black: #090c11;
+
+  --theme-brand: #f32861;
+  --theme-brand-2: #d118ff;
+  --theme-brand-3: #ffbe19;
+
+  --primary-color: var(--white);
+  --secondary-color: var(--gray-40);
+  --tertiary-color: var(--gray-60);
+  --primary-bg-color: var(--black);
+  --secondary-bg-color: var(--gray-100);
+  --tertiary-bg-color: var(--gray-90);
+
+  --card-bg-color: rgba(255, 255, 255, 0.04);
+  --card-border-color: rgba(255, 255, 255, 0.08);
+  --card-hover-border-color: rgba(255, 255, 255, 0.16);
+
+  --primary-button-color: var(--black);
+  --primary-button-bg-color: var(--white);
+  --primary-button-hover-bg-color: var(--gray-20);
+
+  --secondary-button-color: var(--white);
+  --secondary-button-bg-color: var(--gray-70);
+  --secondary-button-hover-bg-color: var(--gray-80);
+
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --gradient-brand: linear-gradient(
+    -45deg,
+    var(--theme-brand-2) 0%,
+    var(--theme-brand) 52%,
+    var(--theme-brand-3) 100%
+  );
+}

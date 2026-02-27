@@ -1,0 +1,35 @@
+{
+  "name": "ticketing-backend",
+  "version": "1",
+  "requests": [
+    {
+      "name": "health",
+      "method": "GET",
+      "url": "{{baseUrl}}/health"
+    },
+    {
+      "name": "ops-metrics",
+      "method": "GET",
+      "url": "{{baseUrl}}/ops/metrics",
+      "headers": {
+        "Authorization": "Bearer {{token}}"
+      }
+    },
+    {
+      "name": "underwriting-proposal",
+      "method": "POST",
+      "url": "{{baseUrl}}/underwriting/financing/proposal",
+      "headers": {
+        "Authorization": "Bearer {{token}}",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "organizer_id": "org_123",
+        "event_id": "evt_123",
+        "requested_advance_amount": 5000000,
+        "projected_gross_revenue": 25000000,
+        "tenor_days": 45
+      }
+    }
+  ]
+}

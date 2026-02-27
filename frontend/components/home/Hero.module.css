@@ -1,0 +1,97 @@
+.hero {
+  width: min(1200px, 100% - 3rem);
+  margin: 2.5rem auto 0;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.25rem;
+}
+
+.left {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--card-border-color);
+  border-radius: 1.2rem;
+  padding: 2rem;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--secondary-color);
+  font-size: 0.9rem;
+}
+
+.left h1 {
+  margin: 0.7rem 0 0;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.05;
+  font-family: var(--font-display), "Sora", sans-serif;
+}
+
+.left h1 span {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.subcopy {
+  margin-top: 1rem;
+  color: var(--secondary-color);
+  max-width: 55ch;
+}
+
+.ctaRow {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 1.4rem;
+}
+
+.ctaRow button {
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+}
+
+.primary {
+  border: none;
+  background: var(--primary-button-bg-color);
+  color: var(--primary-button-color);
+}
+
+.secondary {
+  border: 1px solid var(--card-hover-border-color);
+  background: transparent;
+  color: var(--primary-color);
+}
+
+.panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.panelCard {
+  border-radius: 1rem;
+  padding: 1.2rem;
+  border: 1px solid var(--card-border-color);
+  background: var(--card-bg-color);
+  box-shadow: var(--shadow-lg);
+}
+
+.panelCard p {
+  margin: 0;
+  color: var(--secondary-color);
+}
+
+.panelCard h3 {
+  margin: 0.35rem 0;
+  font-size: 1.8rem;
+}
+
+.panelCard span {
+  color: var(--tertiary-color);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 920px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}

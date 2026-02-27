@@ -1,0 +1,187 @@
+.page {
+  position: relative;
+  min-height: 100vh;
+  color: #fff;
+  overflow: hidden;
+}
+
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background:
+    radial-gradient(circle at 85% -2%, rgba(248, 184, 188, 0.65), transparent 40%),
+    radial-gradient(circle at 8% 8%, rgba(254, 241, 195, 0.5), transparent 34%),
+    radial-gradient(circle at 18% 88%, rgba(0, 224, 255, 0.32), transparent 42%),
+    #0b0d10;
+}
+
+.content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 5rem 1rem 2.5rem;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 1rem;
+}
+
+.header h1 {
+  margin: 0.5rem 0;
+  font-size: 1.8rem;
+}
+
+.header p {
+  margin: 0.2rem 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.88rem;
+}
+
+.backBtn {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 0.84rem;
+}
+
+.statusCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.9rem 1rem;
+}
+
+.buyCard {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.buyCard h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.caption {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.84rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field span {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.field select {
+  height: 2.35rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 18, 24, 0.72);
+  color: #fff;
+  padding: 0 0.6rem;
+}
+
+.summary {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.75rem;
+}
+
+.summary p {
+  margin: 0.2rem 0;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.buyBtn {
+  height: 2.3rem;
+  border-radius: 0.58rem;
+  border: 0;
+  background: #ffffff;
+  color: #101319;
+  font-size: 0.87rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.buyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.receipt {
+  border: 1px solid rgba(115, 255, 164, 0.25);
+  background: rgba(115, 255, 164, 0.1);
+  border-radius: 0.7rem;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.receipt h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+}
+
+.receipt p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.88);
+  word-break: break-all;
+}
+
+.receipt a {
+  margin-top: 0.25rem;
+  color: #d2e6ff;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  width: fit-content;
+}
+
+.adminGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.55rem;
+}
+
+.field input {
+  height: 2.2rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(15, 18, 24, 0.72);
+  color: #fff;
+  padding: 0 0.55rem;
+}
+
+.actionsWrap {
+  display: flex;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0 0.62rem;
+  cursor: pointer;
+}
+
+.actionBtn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}

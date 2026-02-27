@@ -1,0 +1,17 @@
+# Build outputs
+backend/target/
+target/
+
+# Node / frontend build outputs
+frontend/node_modules/
+frontend/.next/
+
+# Environment files
+.env
+.env.*
+backend/.env
+backend/.env.*
+backend/.keys/
+
+# OS/editor noise
+.DS_Store

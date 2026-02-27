@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 PROGRAM_KEYPAIR="${PROGRAM_KEYPAIR:-$ROOT_DIR/target/deploy/ticketing_core-keypair.json}"
-PROGRAM_ID="${PROGRAM_ID:-DyHzPALx4rqgj8X6tycKxFA8KyGscBJ38xdVpCeSL8ej}"
+PROGRAM_ID="${PROGRAM_ID:-Evb4oQnwYDZhabE5E5tuJPg2yvCMGgwMRgkxzzaUw5Rv}"
 
 echo "[deploy] checking solana CLI context"
 solana config get
@@ -16,6 +16,7 @@ echo "[deploy] ensuring build artifacts"
 
 echo "[deploy] deploying to devnet with keypair=$PROGRAM_KEYPAIR"
 anchor deploy \
+  --program-name ticketing_core \
   --provider.cluster devnet \
   --program-keypair "$PROGRAM_KEYPAIR"
 

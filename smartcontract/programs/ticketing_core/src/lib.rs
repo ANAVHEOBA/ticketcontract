@@ -136,7 +136,7 @@ use instructions::trust_signal::set_schema_version::SetSchemaVersion;
 use state::FinancingOfferInput;
 use state::ResalePolicyInput;
 
-declare_id!("DyHzPALx4rqgj8X6tycKxFA8KyGscBJ38xdVpCeSL8ej");
+declare_id!("Evb4oQnwYDZhabE5E5tuJPg2yvCMGgwMRgkxzzaUw5Rv");
 
 #[program]
 pub mod ticketing_core {
